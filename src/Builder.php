@@ -10,7 +10,7 @@ use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
 
-class Builder
+class Builder implements \Illuminate\Contracts\Database\Query\Builder
 {
     /**
      * Le modèle interrogé.
@@ -188,18 +188,10 @@ class Builder
         return $this;
     }
 
-    /**
-     * Ajoute un tableau de clauses where à la requête.
-     *
-     * @param array $wheres
-     * @param string $boolean
-     *
-     * @return $this
-     */
-    protected function addArrayOfWheres($wheres, $boolean = 'and')
+    protected function addArrayOfWheres(array $column, string $boolean = 'and', string $method = 'where')
     {
-        foreach ($wheres as $column => $value) {
-            $this->where($column, '=', $value, $boolean);
+        foreach ($column as $key => $value) {
+            $this->$method($key, '=', $value, $boolean);
         }
 
         return $this;
@@ -310,17 +302,20 @@ class Builder
     /**
      * Ajoute une clause "where in" à la requête.
      *
-     * @param string $column
+     * @param \Illuminate\Contracts\Database\Query\Expression|string $column
      * @param mixed $values
      * @param string $boolean
+     * @param bool $not
      *
      * @return $this
      */
-    public function whereIn($column, $values, $boolean = 'and')
+    public function whereIn($column, $values, string $boolean = 'and', bool $not = false)
     {
+        $operator = $not ? '$notIn' : '$in';
+        
         $this->wheres[] = [
             'column' => $this->mapColumnToField($column),
-            'operator' => '$in',
+            'operator' => $operator,
             'value' => is_array($values) ? $values : [$values],
             'boolean' => $boolean,
         ];
@@ -331,66 +326,75 @@ class Builder
     /**
      * Ajoute une clause "or where in" à la requête.
      *
-     * @param string $column
+     * @param \Illuminate\Contracts\Database\Query\Expression|string $column
      * @param mixed $values
      *
      * @return $this
      */
     public function orWhereIn($column, $values)
     {
-        return $this->whereIn($column, $values, 'or');
+        return $this->whereIn($column, $values, 'or', false);
     }
 
     /**
      * Ajoute une clause "where not in" à la requête.
      *
-     * @param string $column
+     * @param \Illuminate\Contracts\Database\Query\Expression|string $column
      * @param mixed $values
      * @param string $boolean
      *
      * @return $this
      */
-    public function whereNotIn($column, $values, $boolean = 'and')
+    public function whereNotIn($column, $values, string $boolean = 'and')
     {
-        $this->wheres[] = [
-            'column' => $this->mapColumnToField($column),
-            'operator' => '$notIn',
-            'value' => is_array($values) ? $values : [$values],
-            'boolean' => $boolean,
-        ];
-
-        return $this;
+        return $this->whereIn($column, $values, $boolean, true);
     }
 
     /**
      * Ajoute une clause "or where not in" à la requête.
      *
-     * @param string $column
+     * @param \Illuminate\Contracts\Database\Query\Expression|string $column
      * @param mixed $values
      *
      * @return $this
      */
     public function orWhereNotIn($column, $values)
     {
-        return $this->whereNotIn($column, $values, 'or');
+        return $this->whereIn($column, $values, 'or', true);
     }
 
     /**
      * Ajoute une clause "where between" à la requête.
      *
-     * @param string $column
+     * @param \Illuminate\Contracts\Database\Query\Expression|string $column
+     * @param iterable $values
      * @param string $boolean
+     * @param bool $not
      *
      * @return $this
      */
-    public function whereBetween($column, array $values, $boolean = 'and')
+    public function whereBetween($column, iterable $values, string $boolean = 'and', bool $not = false)
     {
-        $this->wheres[] = [
-            'column' => $this->mapColumnToField($column),
-            'operator' => '$between',
-            'value' => $values,
-            'boolean' => $boolean,
-        ];
+        $valuesArray = is_array($values) ? $values : iterator_to_array($values);
+        
+        if ($not) {
+            $this->wheres[] = [
+                'column' => $this->mapColumnToField($column),
+                'operator' => '$not',
+                'value' => [
+                    'operator' => '$between',
+                    'value' => $valuesArray,
+                ],
+                'boolean' => $boolean,
+            ];
+        } else {
+            $this->wheres[] = [
+                'column' => $this->mapColumnToField($column),
+                'operator' => '$between',
+                'value' => $valuesArray,
+                'boolean' => $boolean,
+            ];
+        }
 
         return $this;
     }
@@ -398,63 +402,59 @@ class Builder
     /**
      * Ajoute une clause "or where between" à la requête.
      *
-     * @param string $column
+     * @param \Illuminate\Contracts\Database\Query\Expression|string $column
+     * @param iterable $values
      *
      * @return $this
      */
-    public function orWhereBetween($column, array $values)
+    public function orWhereBetween($column, iterable $values)
     {
-        return $this->whereBetween($column, $values, 'or');
+        return $this->whereBetween($column, $values, 'or', false);
     }
 
     /**
      * Ajoute une clause "where not between" à la requête.
      *
-     * @param string $column
+     * @param \Illuminate\Contracts\Database\Query\Expression|string $column
+     * @param iterable $values
      * @param string $boolean
      *
      * @return $this
      */
-    public function whereNotBetween($column, array $values, $boolean = 'and')
+    public function whereNotBetween($column, iterable $values, string $boolean = 'and')
     {
-        $this->wheres[] = [
-            'column' => $this->mapColumnToField($column),
-            'operator' => '$not',
-            'value' => [
-                'operator' => '$between',
-                'value' => $values,
-            ],
-            'boolean' => $boolean,
-        ];
-
-        return $this;
+        return $this->whereBetween($column, $values, $boolean, true);
     }
 
     /**
      * Ajoute une clause "or where not between" à la requête.
      *
-     * @param string $column
+     * @param \Illuminate\Contracts\Database\Query\Expression|string $column
+     * @param iterable $values
      *
      * @return $this
      */
-    public function orWhereNotBetween($column, array $values)
+    public function orWhereNotBetween($column, iterable $values)
     {
-        return $this->whereNotBetween($column, $values, 'or');
+        return $this->whereBetween($column, $values, 'or', true);
     }
 
     /**
      * Ajoute une clause "where null" à la requête.
      *
-     * @param string $column
+     * @param \Illuminate\Contracts\Database\Query\Expression|string $column
      * @param string $boolean
+     * @param bool $not
      *
      * @return $this
      */
-    public function whereNull($column, $boolean = 'and')
+    public function whereNull($column, string $boolean = 'and', bool $not = false)
     {
+        $operator = $not ? 'is not null' : 'is null';
+        
         $this->wheres[] = [
             'column' => $this->mapColumnToField($column),
-            'operator' => 'is null',
+            'operator' => $operator,
             'value' => null,
             'boolean' => $boolean,
         ];
@@ -465,45 +465,38 @@ class Builder
     /**
      * Ajoute une clause "or where null" à la requête.
      *
-     * @param string $column
+     * @param \Illuminate\Contracts\Database\Query\Expression|string $column
      *
      * @return $this
      */
     public function orWhereNull($column)
     {
-        return $this->whereNull($column, 'or');
+        return $this->whereNull($column, 'or', false);
     }
 
     /**
      * Ajoute une clause "where not null" à la requête.
      *
-     * @param string $column
+     * @param \Illuminate\Contracts\Database\Query\Expression|string $column
      * @param string $boolean
      *
      * @return $this
      */
-    public function whereNotNull($column, $boolean = 'and')
+    public function whereNotNull($column, string $boolean = 'and')
     {
-        $this->wheres[] = [
-            'column' => $this->mapColumnToField($column),
-            'operator' => 'is not null',
-            'value' => null,
-            'boolean' => $boolean,
-        ];
-
-        return $this;
+        return $this->whereNull($column, $boolean, true);
     }
 
     /**
      * Ajoute une clause "or where not null" à la requête.
      *
-     * @param string $column
+     * @param \Illuminate\Contracts\Database\Query\Expression|string $column
      *
      * @return $this
      */
     public function orWhereNotNull($column)
     {
-        return $this->whereNotNull($column, 'or');
+        return $this->whereNull($column, 'or', true);
     }
 
     /**
@@ -968,7 +961,7 @@ class Builder
      * @param array $records Array of records from API
      * @param array $columns Columns to select
      *
-     * @return \Illuminate\Support\Collection
+     * @return Collection
      */
     protected function processRecords(array $records, array $columns = ['*'])
     {
@@ -1261,5 +1254,487 @@ class Builder
     public function toBase()
     {
         return $this;
+    }
+
+    /**
+     * Permet d'exécuter une fonction sur le builder et de retourner le builder.
+     *
+     * @return $this
+     */
+    public function tap(callable $callback)
+    {
+        $callback($this);
+
+        return $this;
+    }
+
+    /**
+     * Exécute le callback lorsque la condition est vraie.
+     *
+     * @param mixed $value
+     *
+     * @return $this
+     */
+    public function when($value, callable $callback, ?callable $default = null)
+    {
+        if ($value) {
+            return $callback($this, $value) ?: $this;
+        } elseif ($default) {
+            return $default($this, $value) ?: $this;
+        }
+
+        return $this;
+    }
+
+    /**
+     * Exécute le callback lorsque la condition est fausse.
+     *
+     * @param mixed $value
+     *
+     * @return $this
+     */
+    public function unless($value, callable $callback, ?callable $default = null)
+    {
+        return $this->when(! $value, $callback, $default);
+    }
+
+    /**
+     * Vérifie si la requête retourne au moins un enregistrement.
+     *
+     * @return bool
+     */
+    public function exists()
+    {
+        return $this->get()->isNotEmpty();
+    }
+
+    /**
+     * Vérifie si la requête ne retourne aucun enregistrement.
+     *
+     * @return bool
+     */
+    public function doesntExist()
+    {
+        return ! $this->exists();
+    }
+
+    /**
+     * Récupère une collection des valeurs d'une colonne.
+     *
+     * @param string $column
+     * @param string|null $key
+     *
+     * @return Collection
+     */
+    public function pluck($column, $key = null)
+    {
+        return $this->get([$column])->pluck($column, $key);
+    }
+
+    /**
+     * Insère un nouvel enregistrement dans la base de données.
+     *
+     * @return bool
+     */
+    public function insert(array $values)
+    {
+        // Non implémenté pour CSV
+        throw new \BadMethodCallException('La méthode insert() n\'est pas supportée pour les CSV');
+    }
+
+    /**
+     * Insère un nouvel enregistrement et récupère l'ID.
+     *
+     * @param string|null $sequence
+     *
+     * @return int
+     */
+    public function insertGetId(array $values, $sequence = null)
+    {
+        // Non implémenté pour CSV
+        throw new \BadMethodCallException('La méthode insertGetId() n\'est pas supportée pour les CSV');
+    }
+
+    /**
+     * Insère ou ignore un enregistrement.
+     *
+     * @return int
+     */
+    public function insertOrIgnore(array $values)
+    {
+        // Non implémenté pour CSV
+        throw new \BadMethodCallException('La méthode insertOrIgnore() n\'est pas supportée pour les CSV');
+    }
+
+    /**
+     * Insère en utilisant une sous-requête.
+     *
+     * @param \Closure|\Illuminate\Database\Query\Builder|string $query
+     *
+     * @return int
+     */
+    public function insertUsing(array $columns, $query)
+    {
+        // Non implémenté pour CSV
+        throw new \BadMethodCallException('La méthode insertUsing() n\'est pas supportée pour les CSV');
+    }
+
+    /**
+     * Met à jour des enregistrements dans la base de données.
+     *
+     * @return int
+     */
+    public function update(array $values)
+    {
+        // Non implémenté pour CSV
+        throw new \BadMethodCallException('La méthode update() n\'est pas supportée pour les CSV');
+    }
+
+    /**
+     * Met à jour ou insère un enregistrement.
+     *
+     * @return bool
+     */
+    public function updateOrInsert(array $attributes, array $values = [])
+    {
+        // Non implémenté pour CSV
+        throw new \BadMethodCallException('La méthode updateOrInsert() n\'est pas supportée pour les CSV');
+    }
+
+    /**
+     * Supprime des enregistrements de la base de données.
+     *
+     * @param mixed $id
+     *
+     * @return int
+     */
+    public function delete($id = null)
+    {
+        // Non implémenté pour CSV
+        throw new \BadMethodCallException('La méthode delete() n\'est pas supportée pour les CSV');
+    }
+
+    /**
+     * Vide la table.
+     *
+     * @return bool
+     */
+    public function truncate()
+    {
+        // Non implémenté pour CSV
+        throw new \BadMethodCallException('La méthode truncate() n\'est pas supportée pour les CSV');
+    }
+
+    /**
+     * Crée une expression SQL brute.
+     *
+     * @param mixed $value
+     *
+     * @return \Illuminate\Database\Query\Expression
+     */
+    public function raw($value)
+    {
+        // Non implémenté pour CSV, mais retourne la valeur pour compatibilité
+        return $value;
+    }
+
+    /**
+     * Exécute une fonction d'agrégation sur la requête.
+     *
+     * @param string $function
+     * @param array $columns
+     *
+     * @return mixed
+     */
+    public function aggregate($function, $columns = ['*'])
+    {
+        $results = $this->get($columns);
+
+        if ($function === 'count') {
+            return $results->count();
+        }
+
+        if (empty($results)) {
+            return 0;
+        }
+
+        // Récupère la valeur de la colonne pour chaque élément
+        $column = isset($columns[0]) && $columns[0] !== '*' ? $columns[0] : null;
+        if ($column) {
+            $results = $results->pluck($column);
+        }
+
+        switch ($function) {
+            case 'sum':
+                return $results->sum();
+            case 'avg':
+            case 'average':
+                return $results->avg();
+            case 'min':
+                return $results->min();
+            case 'max':
+                return $results->max();
+        }
+
+        return 0;
+    }
+
+    /**
+     * Récupère la somme des valeurs.
+     *
+     * @param string $column
+     *
+     * @return mixed
+     */
+    public function sum($column)
+    {
+        return $this->aggregate('sum', [$column]);
+    }
+
+    /**
+     * Récupère la moyenne des valeurs.
+     *
+     * @param string $column
+     *
+     * @return mixed
+     */
+    public function avg($column)
+    {
+        return $this->aggregate('avg', [$column]);
+    }
+
+    /**
+     * Alias pour la méthode avg().
+     *
+     * @param string $column
+     *
+     * @return mixed
+     */
+    public function average($column)
+    {
+        return $this->avg($column);
+    }
+
+    /**
+     * Récupère la valeur maximale.
+     *
+     * @param string $column
+     *
+     * @return mixed
+     */
+    public function max($column)
+    {
+        return $this->aggregate('max', [$column]);
+    }
+
+    /**
+     * Récupère la valeur minimale.
+     *
+     * @param string $column
+     *
+     * @return mixed
+     */
+    public function min($column)
+    {
+        return $this->aggregate('min', [$column]);
+    }
+
+    /**
+     * Ajoute une clause where brute.
+     *
+     * @param string $sql
+     * @param mixed $bindings
+     * @param string $boolean
+     *
+     * @return $this
+     */
+    public function whereRaw($sql, $bindings = [], $boolean = 'and')
+    {
+        // Non implémenté pour CSV
+        throw new \BadMethodCallException('La méthode whereRaw() n\'est pas supportée pour les CSV');
+    }
+
+    /**
+     * Ajoute une clause or where brute.
+     *
+     * @param string $sql
+     * @param mixed $bindings
+     *
+     * @return $this
+     */
+    public function orWhereRaw($sql, $bindings = [])
+    {
+        // Non implémenté pour CSV
+        throw new \BadMethodCallException('La méthode orWhereRaw() n\'est pas supportée pour les CSV');
+    }
+
+    /**
+     * Ajoute une clause union all.
+     *
+     * @param \Illuminate\Database\Query\Builder|\Closure $query
+     *
+     * @return $this
+     */
+    public function unionAll($query)
+    {
+        // Non implémenté pour CSV
+        throw new \BadMethodCallException('La méthode unionAll() n\'est pas supportée pour les CSV');
+    }
+
+    /**
+     * Ajoute une clause union.
+     *
+     * @param \Illuminate\Database\Query\Builder|\Closure $query
+     * @param bool $all
+     *
+     * @return $this
+     */
+    public function union($query, $all = false)
+    {
+        // Non implémenté pour CSV
+        throw new \BadMethodCallException('La méthode union() n\'est pas supportée pour les CSV');
+    }
+
+    /**
+     * Force la requête à retourner des valeurs distinctes.
+     *
+     * @param string|array|\Illuminate\Contracts\Database\Query\Expression $column
+     *
+     * @return $this
+     */
+    public function distinct($column = true)
+    {
+        // Pour l'implémentation CSV, nous le gérerons au moment de l'exécution de la requête
+        return $this;
+    }
+
+    /**
+     * Ajoute une clause join à la requête.
+     *
+     * @param string $table
+     * @param \Closure|string $first
+     * @param string|null $operator
+     * @param string|null $second
+     * @param string $type
+     * @param bool $where
+     *
+     * @return $this
+     */
+    public function join($table, $first, $operator = null, $second = null, $type = 'inner', $where = false)
+    {
+        // Non implémenté pour CSV
+        throw new \BadMethodCallException('La méthode join() n\'est pas supportée pour les CSV');
+    }
+
+    /**
+     * Ajoute une clause left join à la requête.
+     *
+     * @param string $table
+     * @param \Closure|string $first
+     * @param string|null $operator
+     * @param string|null $second
+     *
+     * @return $this
+     */
+    public function leftJoin($table, $first, $operator = null, $second = null)
+    {
+        return $this->join($table, $first, $operator, $second, 'left');
+    }
+
+    /**
+     * Ajoute une clause right join à la requête.
+     *
+     * @param string $table
+     * @param \Closure|string $first
+     * @param string|null $operator
+     * @param string|null $second
+     *
+     * @return $this
+     */
+    public function rightJoin($table, $first, $operator = null, $second = null)
+    {
+        return $this->join($table, $first, $operator, $second, 'right');
+    }
+
+    /**
+     * Ajoute une clause cross join à la requête.
+     *
+     * @param string $table
+     * @param \Closure|string|null $first
+     * @param string|null $operator
+     * @param string|null $second
+     *
+     * @return $this
+     */
+    public function crossJoin($table, $first = null, $operator = null, $second = null)
+    {
+        return $this->join($table, $first, $operator, $second, 'cross');
+    }
+
+    /**
+     * Fusionne les clauses where.
+     *
+     * @param array $wheres
+     * @param array $bindings
+     *
+     * @return void
+     */
+    public function mergeWheres($wheres, $bindings)
+    {
+        // Non implémenté pour CSV
+        throw new \BadMethodCallException('La méthode mergeWheres() n\'est pas supportée pour les CSV');
+    }
+
+    /**
+     * Ajoute une clause where exists.
+     *
+     * @param \Closure $callback
+     * @param string $boolean
+     * @param bool $not
+     *
+     * @return $this
+     */
+    public function whereExists($callback, $boolean = 'and', $not = false)
+    {
+        // Non implémenté pour CSV
+        throw new \BadMethodCallException('La méthode whereExists() n\'est pas supportée pour les CSV');
+    }
+
+    /**
+     * Ajoute une clause or where exists.
+     *
+     * @param \Closure $callback
+     * @param bool $not
+     *
+     * @return $this
+     */
+    public function orWhereExists($callback, $not = false)
+    {
+        return $this->whereExists($callback, 'or', $not);
+    }
+
+    /**
+     * Ajoute une clause where not exists.
+     *
+     * @param \Closure $callback
+     * @param string $boolean
+     *
+     * @return $this
+     */
+    public function whereNotExists($callback, $boolean = 'and')
+    {
+        return $this->whereExists($callback, $boolean, true);
+    }
+
+    /**
+     * Ajoute une clause or where not exists.
+     *
+     * @param \Closure $callback
+     *
+     * @return $this
+     */
+    public function orWhereNotExists($callback)
+    {
+        return $this->orWhereExists($callback, true);
     }
 }
