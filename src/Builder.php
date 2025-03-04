@@ -755,15 +755,15 @@ class Builder implements \Illuminate\Contracts\Database\Query\Builder
         $params = [];
 
         // Gère les filtres
-        if (! empty($this->wheres)) {
+        if (!empty($this->wheres)) {
             $params['filters'] = $this->buildFilters($this->wheres);
         }
 
         // Gère l'ordre
-        if (! empty($this->orders)) {
+        if (!empty($this->orders)) {
             $sortParts = [];
             foreach ($this->orders as $order) {
-                $sortParts[] = $order['column'].':'.$order['direction'];
+                $sortParts[] = $order['column'] . ':' . $order['direction'];
             }
             $params['sort'] = implode(',', $sortParts);
         }
@@ -806,7 +806,7 @@ class Builder implements \Illuminate\Contracts\Database\Query\Builder
                     'value' => null,
                     'boolean' => 'and',
                 ];
-            } elseif (! $this->withTrashed) {
+            } elseif (!$this->withTrashed) {
                 $wheres[] = [
                     'column' => $this->model::DELETED_AT,
                     'operator' => 'is null',
@@ -845,7 +845,7 @@ class Builder implements \Illuminate\Contracts\Database\Query\Builder
                     if (strpos($boolean, 'not') !== false) {
                         $filters[$column]['$not'] = [$operator => $value];
                     } elseif ($boolean === 'or') {
-                        if (! isset($filters['$or'])) {
+                        if (!isset($filters['$or'])) {
                             $filters['$or'] = [];
                         }
                         $filters['$or'][] = [$column => [$operator => $value]];
@@ -884,7 +884,7 @@ class Builder implements \Illuminate\Contracts\Database\Query\Builder
     {
         $result = $this->first($columns);
 
-        if (! $result) {
+        if (!$result) {
             throw (new ModelNotFoundException)->setModel(
                 get_class($this->model)
             );
@@ -934,9 +934,9 @@ class Builder implements \Illuminate\Contracts\Database\Query\Builder
 
             // Debug
             if (config('csv-eloquent.debug', false) && app()->bound('log')) {
-                Log::debug("Builder::get - Nombre d'enregistrements récupérés: ".count($records));
+                Log::debug("Builder::get - Nombre d'enregistrements récupérés: " . count($records));
             }
-            if (! empty($records)) {
+            if (!empty($records)) {
                 if (config('csv-eloquent.debug', false) && app()->bound('log')) {
                     Log::debug("Builder::get - Premier enregistrement:\n");
                 }
@@ -948,7 +948,7 @@ class Builder implements \Illuminate\Contracts\Database\Query\Builder
             return $this->processRecords($records, $columns);
         } catch (\Exception $e) {
             if (config('csv-eloquent.debug', false) && app()->bound('log')) {
-                Log::debug('ERREUR dans Builder::get: '.$e->getMessage());
+                Log::debug('ERREUR dans Builder::get: ' . $e->getMessage());
             }
 
             return new Collection;
@@ -966,7 +966,7 @@ class Builder implements \Illuminate\Contracts\Database\Query\Builder
     protected function processRecords(array $records, array $columns = ['*'])
     {
         if (config('csv-eloquent.debug', false) && app()->bound('log')) {
-            Log::debug('processRecords - Début avec '.count($records)." enregistrements\n");
+            Log::debug('processRecords - Début avec ' . count($records) . " enregistrements\n");
         }
 
         $models = [];
@@ -980,7 +980,7 @@ class Builder implements \Illuminate\Contracts\Database\Query\Builder
 
             try {
                 // Vérifier que record est bien un tableau
-                if (! is_array($record)) {
+                if (!is_array($record)) {
                     if (config('csv-eloquent.debug', false) && app()->bound('log')) {
                         Log::debug("ATTENTION: L'enregistrement #$recordCount n'est pas un tableau\n");
                     }
@@ -1002,7 +1002,7 @@ class Builder implements \Illuminate\Contracts\Database\Query\Builder
 
                     if ($index === 0) {
                         if (config('csv-eloquent.debug', false) && app()->bound('log')) {
-                            Log::debug("Attribution: $field => $attribute = ".(is_string($value) ? $value : gettype($value)));
+                            Log::debug("Attribution: $field => $attribute = " . (is_string($value) ? $value : gettype($value)));
                         }
                     }
 
@@ -1011,7 +1011,7 @@ class Builder implements \Illuminate\Contracts\Database\Query\Builder
                         $model->fillAttribute($attribute, $value);
                     } catch (\Exception $e) {
                         if (config('csv-eloquent.debug', false) && app()->bound('log')) {
-                            Log::debug("ERREUR lors de l'attribution de {$attribute}: ".$e->getMessage());
+                            Log::debug("ERREUR lors de l'attribution de {$attribute}: " . $e->getMessage());
                         }
                     }
                 }
@@ -1019,27 +1019,27 @@ class Builder implements \Illuminate\Contracts\Database\Query\Builder
                 $models[] = $model;
             } catch (\Exception $e) {
                 if (config('csv-eloquent.debug', false) && app()->bound('log')) {
-                    Log::debug("EXCEPTION lors du traitement de l'enregistrement #{$recordCount}: ".$e->getMessage());
+                    Log::debug("EXCEPTION lors du traitement de l'enregistrement #{$recordCount}: " . $e->getMessage());
                 }
             }
         }
 
         if (config('csv-eloquent.debug', false) && app()->bound('log')) {
-            Log::debug('processRecords - Modèles créés: '.count($models));
+            Log::debug('processRecords - Modèles créés: ' . count($models));
         }
 
         // Vérifier le premier modèle
-        if (! empty($models)) {
+        if (!empty($models)) {
             if (config('csv-eloquent.debug', false) && app()->bound('log')) {
-                Log::debug('Premier modèle: '.get_class($models[0]));
+                Log::debug('Premier modèle: ' . get_class($models[0]));
             }
 
             $firstModel = $models[0];
             if (config('csv-eloquent.debug', false) && app()->bound('log')) {
-                Log::debug('ID du premier modèle: '.$firstModel->getKey());
+                Log::debug('ID du premier modèle: ' . $firstModel->getKey());
             }
             if (config('csv-eloquent.debug', false) && app()->bound('log')) {
-                Log::debug('Status du premier modèle: '.$firstModel->getAttribute('status'));
+                Log::debug('Status du premier modèle: ' . $firstModel->getAttribute('status'));
             }
         }
 
@@ -1047,11 +1047,11 @@ class Builder implements \Illuminate\Contracts\Database\Query\Builder
         $collection = $this->model->newCollection($models);
 
         if (config('csv-eloquent.debug', false) && app()->bound('log')) {
-            Log::debug('Collection créée avec '.$collection->count()." éléments\n");
+            Log::debug('Collection créée avec ' . $collection->count() . " éléments\n");
         }
 
         // Applique les clauses having si nécessaire
-        if (! empty($this->havings)) {
+        if (!empty($this->havings)) {
             $collection = $this->applyHavingClauses($collection);
         }
 
@@ -1297,7 +1297,7 @@ class Builder implements \Illuminate\Contracts\Database\Query\Builder
      */
     public function unless($value, callable $callback, ?callable $default = null)
     {
-        return $this->when(! $value, $callback, $default);
+        return $this->when(!$value, $callback, $default);
     }
 
     /**
@@ -1317,7 +1317,7 @@ class Builder implements \Illuminate\Contracts\Database\Query\Builder
      */
     public function doesntExist()
     {
-        return ! $this->exists();
+        return !$this->exists();
     }
 
     /**
@@ -1738,5 +1738,266 @@ class Builder implements \Illuminate\Contracts\Database\Query\Builder
     public function orWhereNotExists($callback)
     {
         return $this->orWhereExists($callback, true);
+    }
+
+    /**
+     * Obtient l'instance de requête de base.
+     *
+     * @return $this
+     */
+    public function getQuery()
+    {
+        return $this;
+    }
+
+    /**
+     * Définit la table (fichier CSV) pour la requête.
+     *
+     * @param string $table
+     *
+     * @return $this
+     */
+    public function from($table, $as = null)
+    {
+        // Dans notre contexte CSV, on pourrait stocker le nom du fichier CSV
+        // Mais comme on utilise déjà le modèle, cette méthode est juste
+        // pour la compatibilité avec l'interface
+        return $this;
+    }
+
+    /**
+     * Ajoute des colonnes à la clause select existante.
+     *
+     * @param array|mixed $column
+     *
+     * @return $this
+     */
+    public function addSelect($column)
+    {
+        $columns = is_array($column) ? $column : func_get_args();
+
+        // Si la sélection actuelle contient uniquement *, on la remplace
+        if (count($this->columns) === 1 && $this->columns[0] === '*') {
+            $this->columns = $columns;
+        } else {
+            $this->columns = array_merge($this->columns, $columns);
+        }
+
+        return $this;
+    }
+
+    /**
+     * Obtient les liaisons de paramètres sous la forme d'un tableau plat ordonné.
+     *
+     * @return array
+     */
+    public function getBindings()
+    {
+        // Dans notre contexte CSV, nous n'utilisons pas de liaisons de paramètres
+        // comme dans SQL, mais cette méthode est requise par l'interface
+        return [];
+    }
+
+    /**
+     * Clone la requête sans les composants spécifiés.
+     *
+     * @param array $properties
+     *
+     * @return static
+     */
+    public function cloneWithout(array $properties)
+    {
+        $clone = clone $this;
+
+        foreach ($properties as $property) {
+            // Réinitialiser les propriétés spécifiées
+            switch ($property) {
+                case 'wheres':
+                    $clone->wheres = [];
+                    break;
+                case 'orders':
+                    $clone->orders = [];
+                    break;
+                case 'limit':
+                    $clone->limit = null;
+                    break;
+                case 'offset':
+                    $clone->offset = null;
+                    break;
+                case 'columns':
+                    $clone->columns = ['*'];
+                    break;
+                case 'groups':
+                    $clone->groups = [];
+                    break;
+                case 'havings':
+                    $clone->havings = [];
+                    break;
+            }
+        }
+
+        return $clone;
+    }
+
+    /**
+     * Clone la requête sans les liaisons spécifiées.
+     *
+     * @param array $except
+     *
+     * @return static
+     */
+    public function cloneWithoutBindings(array $except)
+    {
+        // Dans notre contexte CSV, nous n'utilisons pas de liaisons
+        // comme dans SQL, mais cette méthode est requise par l'interface
+        return clone $this;
+    }
+    
+    /**
+     * Ordonne les résultats par date de création par ordre décroissant.
+     *
+     * @param string $column
+     * @return $this
+     */
+    public function latest($column = 'created_at')
+    {
+        return $this->orderBy($column, 'desc');
+    }
+
+    /**
+     * Ordonne les résultats par date de création par ordre croissant.
+     *
+     * @param string $column
+     * @return $this
+     */
+    public function oldest($column = 'created_at')
+    {
+        return $this->orderBy($column, 'asc');
+    }
+    
+    /**
+     * Pagine les résultats en utilisant un ID comme point de référence.
+     *
+     * @param int $perPage
+     * @param int|null $lastId
+     * @param string $column
+     * @return $this
+     */
+    public function forPageBeforeId($perPage = 15, $lastId = 0, $column = 'id')
+    {
+        $this->limit($perPage);
+        
+        if ($lastId !== null && $lastId > 0) {
+            $this->where($column, '<', $lastId);
+        }
+        
+        return $this->orderBy($column, 'desc');
+    }
+
+    /**
+     * Pagine les résultats en utilisant un ID comme point de référence.
+     *
+     * @param int $perPage
+     * @param int|null $lastId
+     * @param string $column
+     * @return $this
+     */
+    public function forPageAfterId($perPage = 15, $lastId = 0, $column = 'id')
+    {
+        $this->limit($perPage);
+        
+        if ($lastId !== null && $lastId > 0) {
+            $this->where($column, '>', $lastId);
+        }
+        
+        return $this->orderBy($column, 'asc');
+    }
+    
+    /**
+     * Récupère une valeur unique d'un enregistrement.
+     *
+     * @param string $column
+     * @return mixed
+     */
+    public function value($column)
+    {
+        $result = $this->first([$column]);
+        
+        return $result ? $result->{$column} : null;
+    }
+    
+    /**
+     * Traite les résultats de la requête en morceaux.
+     *
+     * @param int $count
+     * @param callable $callback
+     * @return bool
+     */
+    public function chunk($count, callable $callback)
+    {
+        $page = 1;
+        
+        do {
+            $results = $this->forPage($page, $count)->get();
+            
+            $countResults = $results->count();
+            
+            if ($countResults == 0) {
+                break;
+            }
+            
+            if ($callback($results, $page) === false) {
+                return false;
+            }
+            
+            $page++;
+        } while ($countResults == $count);
+        
+        return true;
+    }
+    
+    /**
+     * Exécute un callback sur chaque élément des résultats.
+     *
+     * @param callable $callback
+     * @param int $count
+     * @return bool
+     */
+    public function each(callable $callback, $count = 1000)
+    {
+        return $this->chunk($count, function ($results) use ($callback) {
+            foreach ($results as $key => $value) {
+                if ($callback($value, $key) === false) {
+                    return false;
+                }
+            }
+            
+            return true;
+        });
+    }
+    
+    /**
+     * Exécute la requête en utilisant un générateur pour économiser la mémoire.
+     *
+     * @param int $chunkSize
+     * @return \Generator
+     */
+    public function lazy($chunkSize = 1000)
+    {
+        $page = 1;
+        
+        do {
+            $clone = clone $this;
+            
+            $results = $clone->forPage($page++, $chunkSize)->get();
+            
+            if ($results->isEmpty()) {
+                break;
+            }
+            
+            foreach ($results as $result) {
+                yield $result;
+            }
+        } while (true);
     }
 }
