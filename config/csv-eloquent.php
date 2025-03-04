@@ -55,7 +55,7 @@ return [
     |
     */
     'model_mapping' => [
-        'Paymetrust\CsvEloquent\Models\Payment' => 'payments',
-        'Paymetrust\CsvEloquent\Models\Transfer' => 'transfers',
+        'Adisaf\CsvEloquent\Models\Payment' => 'payments',
+        'Adisaf\CsvEloquent\Models\Transfer' => 'transfers',
     ],
 ];

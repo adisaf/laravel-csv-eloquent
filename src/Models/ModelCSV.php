@@ -1,9 +1,7 @@
 <?php
 
-namespace App\Models;
+namespace Adisaf\CsvEloquent\Models;
 
-use App\Models\Csv\Builder as CsvBuilder;
-use App\Models\Csv\CsvClient;
 use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Contracts\Support\Jsonable;
 use Illuminate\Database\Eloquent\Concerns\GuardsAttributes;
@@ -18,6 +16,8 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Illuminate\Support\Traits\ForwardsCalls;
 use JsonSerializable;
+use Adisaf\CsvEloquent\Builder as CsvBuilder;
+use Adisaf\CsvEloquent\CsvClient;
 
 abstract class ModelCSV implements Arrayable, Jsonable, JsonSerializable
 {
@@ -161,7 +161,7 @@ abstract class ModelCSV implements Arrayable, Jsonable, JsonSerializable
      */
     protected function bootIfNotBooted()
     {
-        if (! isset(static::$booted[static::class])) {
+        if (!isset(static::$booted[static::class])) {
             static::$booted[static::class] = true;
 
             static::bootTraits();
@@ -178,7 +178,7 @@ abstract class ModelCSV implements Arrayable, Jsonable, JsonSerializable
         $class = static::class;
 
         foreach (class_uses_recursive($class) as $trait) {
-            if (method_exists($class, $method = 'boot'.class_basename($trait))) {
+            if (method_exists($class, $method = 'boot' . class_basename($trait))) {
                 forward_static_call([$class, $method]);
             }
         }
@@ -217,7 +217,7 @@ abstract class ModelCSV implements Arrayable, Jsonable, JsonSerializable
      */
     public function getCsvFile()
     {
-        return $this->csvFile ?? Str::snake(Str::pluralStudly(class_basename($this))).'.csv';
+        return $this->csvFile ?? Str::snake(Str::pluralStudly(class_basename($this))) . '.csv';
     }
 
     /**
@@ -241,7 +241,7 @@ abstract class ModelCSV implements Arrayable, Jsonable, JsonSerializable
      */
     public static function getCsvClient()
     {
-        if (! static::$csvClient) {
+        if (!static::$csvClient) {
             static::$csvClient = new CsvClient;
         }
 
@@ -380,7 +380,7 @@ abstract class ModelCSV implements Arrayable, Jsonable, JsonSerializable
      */
     public function __isset($key)
     {
-        return ! is_null($this->getAttribute($key));
+        return !is_null($this->getAttribute($key));
     }
 
     /**
@@ -491,7 +491,7 @@ abstract class ModelCSV implements Arrayable, Jsonable, JsonSerializable
 
             return $response['data']['schema'] ?? [];
         } catch (\Exception $e) {
-            Log::error('Échec de la récupération du schéma pour le fichier CSV: '.$this->getCsvFile(), [
+            Log::error('Échec de la récupération du schéma pour le fichier CSV: ' . $this->getCsvFile(), [
                 'exception' => $e->getMessage(),
             ]);
 
@@ -575,7 +575,7 @@ abstract class ModelCSV implements Arrayable, Jsonable, JsonSerializable
             if (count($result) === count(array_unique($id))) {
                 return $result;
             }
-        } elseif (! is_null($result)) {
+        } elseif (!is_null($result)) {
             return $result;
         }
 
@@ -594,7 +594,7 @@ abstract class ModelCSV implements Arrayable, Jsonable, JsonSerializable
      */
     public function newInstance($attributes = [], $exists = false)
     {
-        $model = new static((array) $attributes);
+        $model = new static((array)$attributes);
 
         $model->exists = $exists;
 

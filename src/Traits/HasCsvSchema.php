@@ -1,6 +1,6 @@
 <?php
 
-namespace Paymetrust\CsvEloquent\Traits;
+namespace Adisaf\CsvEloquent\Traits;
 
 trait HasCsvSchema
 {

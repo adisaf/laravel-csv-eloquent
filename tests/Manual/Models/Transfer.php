@@ -1,10 +1,10 @@
 <?php
 
-namespace Paymetrust\CsvEloquent\Tests\Manual\Models;
+namespace Adisaf\CsvEloquent\Tests\Manual\Models;
 
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Paymetrust\CsvEloquent\Models\ModelCSV;
-use Paymetrust\CsvEloquent\Traits\HasCsvSchema;
+use Adisaf\CsvEloquent\Models\ModelCSV;
+use Adisaf\CsvEloquent\Traits\HasCsvSchema;
 
 class Transfer extends ModelCSV
 {
@@ -61,7 +61,7 @@ class Transfer extends ModelCSV
      * Ceci est une méthode personnalisée qui simule une relation, puisque
      * les relations directes ne sont pas prises en charge par l'API CSV.
      *
-     * @return \Paymetrust\CsvEloquent\Models\ModelCSV|null
+     * @return \Adisaf\CsvEloquent\Models\ModelCSV|null
      */
     public function getPayment()
     {
@@ -75,9 +75,9 @@ class Transfer extends ModelCSV
     /**
      * Scope des transferts terminés (succès).
      *
-     * @param \Paymetrust\CsvEloquent\Builder $query
+     * @param \Adisaf\CsvEloquent\Builder $query
      *
-     * @return \Paymetrust\CsvEloquent\Builder
+     * @return \Adisaf\CsvEloquent\Builder
      */
     public function scopeSuccessful($query)
     {
@@ -87,9 +87,9 @@ class Transfer extends ModelCSV
     /**
      * Scope des transferts échoués.
      *
-     * @param \Paymetrust\CsvEloquent\Builder $query
+     * @param \Adisaf\CsvEloquent\Builder $query
      *
-     * @return \Paymetrust\CsvEloquent\Builder
+     * @return \Adisaf\CsvEloquent\Builder
      */
     public function scopeFailed($query)
     {
@@ -99,10 +99,10 @@ class Transfer extends ModelCSV
     /**
      * Scope des transferts pour un pays spécifique.
      *
-     * @param \Paymetrust\CsvEloquent\Builder $query
+     * @param \Adisaf\CsvEloquent\Builder $query
      * @param string $countryCode
      *
-     * @return \Paymetrust\CsvEloquent\Builder
+     * @return \Adisaf\CsvEloquent\Builder
      */
     public function scopeForCountry($query, $countryCode)
     {
@@ -112,10 +112,10 @@ class Transfer extends ModelCSV
     /**
      * Scope des transferts pour un opérateur spécifique.
      *
-     * @param \Paymetrust\CsvEloquent\Builder $query
+     * @param \Adisaf\CsvEloquent\Builder $query
      * @param string $carrier
      *
-     * @return \Paymetrust\CsvEloquent\Builder
+     * @return \Adisaf\CsvEloquent\Builder
      */
     public function scopeForCarrier($query, $carrier)
     {
@@ -125,11 +125,11 @@ class Transfer extends ModelCSV
     /**
      * Scope des transferts entre des dates spécifiques.
      *
-     * @param \Paymetrust\CsvEloquent\Builder $query
+     * @param \Adisaf\CsvEloquent\Builder $query
      * @param string $startDate
      * @param string $endDate
      *
-     * @return \Paymetrust\CsvEloquent\Builder
+     * @return \Adisaf\CsvEloquent\Builder
      */
     public function scopeBetweenDates($query, $startDate, $endDate)
     {

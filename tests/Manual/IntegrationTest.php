@@ -1,12 +1,12 @@
 <?php
 
-namespace Paymetrust\CsvEloquent\Tests\Manual;
+namespace Adisaf\CsvEloquent\Tests\Manual;
 
 use Dotenv\Dotenv;
 use Illuminate\Support\Collection;
-use Paymetrust\CsvEloquent\CsvClient;
-use Paymetrust\CsvEloquent\Tests\Manual\Models\Payment;
-use Paymetrust\CsvEloquent\Tests\Manual\Models\Transfer;
+use Adisaf\CsvEloquent\CsvClient;
+use Adisaf\CsvEloquent\Tests\Manual\Models\Payment;
+use Adisaf\CsvEloquent\Tests\Manual\Models\Transfer;
 use PHPUnit\Framework\TestCase;
 
 /**

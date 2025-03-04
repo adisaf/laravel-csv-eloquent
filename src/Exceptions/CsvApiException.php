@@ -1,6 +1,6 @@
 <?php
 
-namespace Paymetrust\CsvEloquent\Exceptions;
+namespace Adisaf\CsvEloquent\Exceptions;
 
 use Exception;
 

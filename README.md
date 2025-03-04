@@ -77,8 +77,8 @@ CSV_API_CACHE_TTL=60
 
 namespace App\Models;
 
-use Paymetrust\CsvEloquent\Models\ModelCSV;
-use Paymetrust\CsvEloquent\Traits\HasCsvSchema;
+use Adisaf\CsvEloquent\Models\ModelCSV;
+use Adisaf\CsvEloquent\Traits\HasCsvSchema;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Payment extends ModelCSV

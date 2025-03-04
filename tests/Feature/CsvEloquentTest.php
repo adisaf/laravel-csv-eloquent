@@ -1,10 +1,10 @@
 <?php
 
-namespace Paymetrust\CsvEloquent\Tests\Feature;
+namespace Adisaf\CsvEloquent\Tests\Feature;
 
 use Illuminate\Support\Collection;
-use Paymetrust\CsvEloquent\Tests\Fixtures\TestModel;
-use Paymetrust\CsvEloquent\Tests\TestCase;
+use Adisaf\CsvEloquent\Tests\Fixtures\TestModel;
+use Adisaf\CsvEloquent\Tests\TestCase;
 
 class CsvEloquentTest extends TestCase
 {

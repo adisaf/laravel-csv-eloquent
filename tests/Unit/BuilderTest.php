@@ -1,12 +1,12 @@
 <?php
 
-namespace Paymetrust\CsvEloquent\Tests\Unit;
+namespace Adisaf\CsvEloquent\Tests\Unit;
 
 use Illuminate\Support\Collection;
 use Mockery;
-use Paymetrust\CsvEloquent\Builder;
-use Paymetrust\CsvEloquent\Models\ModelCSV;
-use Paymetrust\CsvEloquent\Tests\TestCase;
+use Adisaf\CsvEloquent\Builder;
+use Adisaf\CsvEloquent\Models\ModelCSV;
+use Adisaf\CsvEloquent\Tests\TestCase;
 
 class BuilderTest extends TestCase
 {
@@ -20,7 +20,7 @@ class BuilderTest extends TestCase
     /**
      * Instance de Builder pour les tests.
      *
-     * @var \Paymetrust\CsvEloquent\Builder
+     * @var \Adisaf\CsvEloquent\Builder
      */
     protected $builder;
 

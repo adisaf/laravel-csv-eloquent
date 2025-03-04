@@ -1,6 +1,6 @@
 <?php
 
-namespace Paymetrust\CsvEloquent;
+namespace Adisaf\CsvEloquent;
 
 use App\Exceptions\CsvApiException;
 use Illuminate\Support\Facades\Cache;

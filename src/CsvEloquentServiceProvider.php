@@ -1,6 +1,6 @@
 <?php
 
-namespace Paymetrust\CsvEloquent;
+namespace Adisaf\CsvEloquent;
 
 use Illuminate\Support\ServiceProvider;
 

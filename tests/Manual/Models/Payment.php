@@ -1,11 +1,11 @@
 <?php
 
-namespace Paymetrust\CsvEloquent\Tests\Manual\Models;
+namespace Adisaf\CsvEloquent\Tests\Manual\Models;
 
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Collection;
-use Paymetrust\CsvEloquent\Models\ModelCSV;
-use Paymetrust\CsvEloquent\Traits\HasCsvSchema;
+use Adisaf\CsvEloquent\Models\ModelCSV;
+use Adisaf\CsvEloquent\Traits\HasCsvSchema;
 
 class Payment extends ModelCSV
 {
@@ -82,9 +82,9 @@ class Payment extends ModelCSV
     /**
      * Scope des paiements validés.
      *
-     * @param \Paymetrust\CsvEloquent\Builder $query
+     * @param \Adisaf\CsvEloquent\Builder $query
      *
-     * @return \Paymetrust\CsvEloquent\Builder
+     * @return \Adisaf\CsvEloquent\Builder
      */
     public function scopeValidated($query)
     {
@@ -94,9 +94,9 @@ class Payment extends ModelCSV
     /**
      * Scope des paiements échoués.
      *
-     * @param \Paymetrust\CsvEloquent\Builder $query
+     * @param \Adisaf\CsvEloquent\Builder $query
      *
-     * @return \Paymetrust\CsvEloquent\Builder
+     * @return \Adisaf\CsvEloquent\Builder
      */
     public function scopeFailed($query)
     {
@@ -106,10 +106,10 @@ class Payment extends ModelCSV
     /**
      * Scope des paiements avec un montant supérieur à la valeur donnée.
      *
-     * @param \Paymetrust\CsvEloquent\Builder $query
+     * @param \Adisaf\CsvEloquent\Builder $query
      * @param float $amount
      *
-     * @return \Paymetrust\CsvEloquent\Builder
+     * @return \Adisaf\CsvEloquent\Builder
      */
     public function scopeMinAmount($query, $amount)
     {
@@ -119,10 +119,10 @@ class Payment extends ModelCSV
     /**
      * Scope des paiements pour un pays donné.
      *
-     * @param \Paymetrust\CsvEloquent\Builder $query
+     * @param \Adisaf\CsvEloquent\Builder $query
      * @param string $countryCode
      *
-     * @return \Paymetrust\CsvEloquent\Builder
+     * @return \Adisaf\CsvEloquent\Builder
      */
     public function scopeForCountry($query, $countryCode)
     {
@@ -132,10 +132,10 @@ class Payment extends ModelCSV
     /**
      * Scope des paiements pour un opérateur donné.
      *
-     * @param \Paymetrust\CsvEloquent\Builder $query
+     * @param \Adisaf\CsvEloquent\Builder $query
      * @param string $carrier
      *
-     * @return \Paymetrust\CsvEloquent\Builder
+     * @return \Adisaf\CsvEloquent\Builder
      */
     public function scopeForCarrier($query, $carrier)
     {

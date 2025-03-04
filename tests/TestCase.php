@@ -1,11 +1,11 @@
 <?php
 
-namespace Paymetrust\CsvEloquent\Tests;
+namespace Adisaf\CsvEloquent\Tests;
 
 use Mockery;
 use Orchestra\Testbench\TestCase as BaseTestCase;
-use Paymetrust\CsvEloquent\CsvClient;
-use Paymetrust\CsvEloquent\CsvEloquentServiceProvider;
+use Adisaf\CsvEloquent\CsvClient;
+use Adisaf\CsvEloquent\CsvEloquentServiceProvider;
 
 abstract class TestCase extends BaseTestCase
 {

@@ -1,10 +1,10 @@
 <?php
 
-namespace Paymetrust\CsvEloquent\Tests\Fixtures;
+namespace Adisaf\CsvEloquent\Tests\Fixtures;
 
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Paymetrust\CsvEloquent\Models\ModelCSV;
-use Paymetrust\CsvEloquent\Traits\HasCsvSchema;
+use Adisaf\CsvEloquent\Models\ModelCSV;
+use Adisaf\CsvEloquent\Traits\HasCsvSchema;
 
 class TestModel extends ModelCSV
 {
