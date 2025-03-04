@@ -367,7 +367,6 @@ class Builder implements \Illuminate\Contracts\Database\Query\Builder
      * Ajoute une clause "where between" à la requête.
      *
      * @param \Illuminate\Contracts\Database\Query\Expression|string $column
-     * @param iterable $values
      * @param string $boolean
      * @param bool $not
      *
@@ -403,7 +402,6 @@ class Builder implements \Illuminate\Contracts\Database\Query\Builder
      * Ajoute une clause "or where between" à la requête.
      *
      * @param \Illuminate\Contracts\Database\Query\Expression|string $column
-     * @param iterable $values
      *
      * @return $this
      */
@@ -416,7 +414,6 @@ class Builder implements \Illuminate\Contracts\Database\Query\Builder
      * Ajoute une clause "where not between" à la requête.
      *
      * @param \Illuminate\Contracts\Database\Query\Expression|string $column
-     * @param iterable $values
      * @param string $boolean
      *
      * @return $this
@@ -430,7 +427,6 @@ class Builder implements \Illuminate\Contracts\Database\Query\Builder
      * Ajoute une clause "or where not between" à la requête.
      *
      * @param \Illuminate\Contracts\Database\Query\Expression|string $column
-     * @param iterable $values
      *
      * @return $this
      */
@@ -507,6 +503,7 @@ class Builder implements \Illuminate\Contracts\Database\Query\Builder
      * @param mixed $value
      * @param string $boolean
      * @param false $not
+     *
      * @return $this
      */
     public function whereJsonContains($column, $value, $boolean = 'and', $not = false)
@@ -525,18 +522,20 @@ class Builder implements \Illuminate\Contracts\Database\Query\Builder
      * Ajoute une clause where pour JSON contains key à la requête.
      *
      * @param string $column
-     * @param string $key
      * @param string $boolean
+     * @param bool $not
      *
      * @return $this
      */
-    public function whereJsonContainsKey($column, $key, $boolean = 'and')
+    public function whereJsonContainsKey($column, $boolean = 'and', $not = false)
     {
         // Pour l'API CSV, nous utiliserons une approche similaire en utilisant l'opérateur contains
+        $operator = $not ? '$notContains' : '$contains';
+
         $this->wheres[] = [
             'column' => $this->mapColumnToField($column),
-            'operator' => '$contains',
-            'value' => $key,
+            'operator' => $operator,
+            'value' => null, // Adapté pour vérifier juste l'existence de la clé
             'boolean' => $boolean,
         ];
 
@@ -756,15 +755,15 @@ class Builder implements \Illuminate\Contracts\Database\Query\Builder
         $params = [];
 
         // Gère les filtres
-        if (!empty($this->wheres)) {
+        if (! empty($this->wheres)) {
             $params['filters'] = $this->buildFilters($this->wheres);
         }
 
         // Gère l'ordre
-        if (!empty($this->orders)) {
+        if (! empty($this->orders)) {
             $sortParts = [];
             foreach ($this->orders as $order) {
-                $sortParts[] = $order['column'] . ':' . $order['direction'];
+                $sortParts[] = $order['column'].':'.$order['direction'];
             }
             $params['sort'] = implode(',', $sortParts);
         }
@@ -807,7 +806,7 @@ class Builder implements \Illuminate\Contracts\Database\Query\Builder
                     'value' => null,
                     'boolean' => 'and',
                 ];
-            } elseif (!$this->withTrashed) {
+            } elseif (! $this->withTrashed) {
                 $wheres[] = [
                     'column' => $this->model::DELETED_AT,
                     'operator' => 'is null',
@@ -846,7 +845,7 @@ class Builder implements \Illuminate\Contracts\Database\Query\Builder
                     if (strpos($boolean, 'not') !== false) {
                         $filters[$column]['$not'] = [$operator => $value];
                     } elseif ($boolean === 'or') {
-                        if (!isset($filters['$or'])) {
+                        if (! isset($filters['$or'])) {
                             $filters['$or'] = [];
                         }
                         $filters['$or'][] = [$column => [$operator => $value]];
@@ -885,7 +884,7 @@ class Builder implements \Illuminate\Contracts\Database\Query\Builder
     {
         $result = $this->first($columns);
 
-        if (!$result) {
+        if (! $result) {
             throw (new ModelNotFoundException)->setModel(
                 get_class($this->model)
             );
@@ -935,9 +934,9 @@ class Builder implements \Illuminate\Contracts\Database\Query\Builder
 
             // Debug
             if (config('csv-eloquent.debug', false) && app()->bound('log')) {
-                Log::debug("Builder::get - Nombre d'enregistrements récupérés: " . count($records));
+                Log::debug("Builder::get - Nombre d'enregistrements récupérés: ".count($records));
             }
-            if (!empty($records)) {
+            if (! empty($records)) {
                 if (config('csv-eloquent.debug', false) && app()->bound('log')) {
                     Log::debug("Builder::get - Premier enregistrement:\n");
                 }
@@ -949,7 +948,7 @@ class Builder implements \Illuminate\Contracts\Database\Query\Builder
             return $this->processRecords($records, $columns);
         } catch (\Exception $e) {
             if (config('csv-eloquent.debug', false) && app()->bound('log')) {
-                Log::debug('ERREUR dans Builder::get: ' . $e->getMessage());
+                Log::debug('ERREUR dans Builder::get: '.$e->getMessage());
             }
 
             return new Collection;
@@ -967,7 +966,7 @@ class Builder implements \Illuminate\Contracts\Database\Query\Builder
     protected function processRecords(array $records, array $columns = ['*'])
     {
         if (config('csv-eloquent.debug', false) && app()->bound('log')) {
-            Log::debug('processRecords - Début avec ' . count($records) . " enregistrements\n");
+            Log::debug('processRecords - Début avec '.count($records)." enregistrements\n");
         }
 
         $models = [];
@@ -981,7 +980,7 @@ class Builder implements \Illuminate\Contracts\Database\Query\Builder
 
             try {
                 // Vérifier que record est bien un tableau
-                if (!is_array($record)) {
+                if (! is_array($record)) {
                     if (config('csv-eloquent.debug', false) && app()->bound('log')) {
                         Log::debug("ATTENTION: L'enregistrement #$recordCount n'est pas un tableau\n");
                     }
@@ -1003,7 +1002,7 @@ class Builder implements \Illuminate\Contracts\Database\Query\Builder
 
                     if ($index === 0) {
                         if (config('csv-eloquent.debug', false) && app()->bound('log')) {
-                            Log::debug("Attribution: $field => $attribute = " . (is_string($value) ? $value : gettype($value)));
+                            Log::debug("Attribution: $field => $attribute = ".(is_string($value) ? $value : gettype($value)));
                         }
                     }
 
@@ -1012,7 +1011,7 @@ class Builder implements \Illuminate\Contracts\Database\Query\Builder
                         $model->fillAttribute($attribute, $value);
                     } catch (\Exception $e) {
                         if (config('csv-eloquent.debug', false) && app()->bound('log')) {
-                            Log::debug("ERREUR lors de l'attribution de {$attribute}: " . $e->getMessage());
+                            Log::debug("ERREUR lors de l'attribution de {$attribute}: ".$e->getMessage());
                         }
                     }
                 }
@@ -1020,27 +1019,27 @@ class Builder implements \Illuminate\Contracts\Database\Query\Builder
                 $models[] = $model;
             } catch (\Exception $e) {
                 if (config('csv-eloquent.debug', false) && app()->bound('log')) {
-                    Log::debug("EXCEPTION lors du traitement de l'enregistrement #{$recordCount}: " . $e->getMessage());
+                    Log::debug("EXCEPTION lors du traitement de l'enregistrement #{$recordCount}: ".$e->getMessage());
                 }
             }
         }
 
         if (config('csv-eloquent.debug', false) && app()->bound('log')) {
-            Log::debug('processRecords - Modèles créés: ' . count($models));
+            Log::debug('processRecords - Modèles créés: '.count($models));
         }
 
         // Vérifier le premier modèle
-        if (!empty($models)) {
+        if (! empty($models)) {
             if (config('csv-eloquent.debug', false) && app()->bound('log')) {
-                Log::debug('Premier modèle: ' . get_class($models[0]));
+                Log::debug('Premier modèle: '.get_class($models[0]));
             }
 
             $firstModel = $models[0];
             if (config('csv-eloquent.debug', false) && app()->bound('log')) {
-                Log::debug('ID du premier modèle: ' . $firstModel->getKey());
+                Log::debug('ID du premier modèle: '.$firstModel->getKey());
             }
             if (config('csv-eloquent.debug', false) && app()->bound('log')) {
-                Log::debug('Status du premier modèle: ' . $firstModel->getAttribute('status'));
+                Log::debug('Status du premier modèle: '.$firstModel->getAttribute('status'));
             }
         }
 
@@ -1048,11 +1047,11 @@ class Builder implements \Illuminate\Contracts\Database\Query\Builder
         $collection = $this->model->newCollection($models);
 
         if (config('csv-eloquent.debug', false) && app()->bound('log')) {
-            Log::debug('Collection créée avec ' . $collection->count() . " éléments\n");
+            Log::debug('Collection créée avec '.$collection->count()." éléments\n");
         }
 
         // Applique les clauses having si nécessaire
-        if (!empty($this->havings)) {
+        if (! empty($this->havings)) {
             $collection = $this->applyHavingClauses($collection);
         }
 
@@ -1111,6 +1110,7 @@ class Builder implements \Illuminate\Contracts\Database\Query\Builder
      * @param string $pageName
      * @param null $page
      * @param null $total
+     *
      * @return \Illuminate\Pagination\LengthAwarePaginator
      */
     public function paginate($perPage = 15, $columns = ['*'], $pageName = 'page', $page = null, $total = null)
@@ -1297,7 +1297,7 @@ class Builder implements \Illuminate\Contracts\Database\Query\Builder
      */
     public function unless($value, callable $callback, ?callable $default = null)
     {
-        return $this->when(!$value, $callback, $default);
+        return $this->when(! $value, $callback, $default);
     }
 
     /**
@@ -1317,7 +1317,7 @@ class Builder implements \Illuminate\Contracts\Database\Query\Builder
      */
     public function doesntExist()
     {
-        return !$this->exists();
+        return ! $this->exists();
     }
 
     /**
