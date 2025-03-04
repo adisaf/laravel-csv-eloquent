@@ -10,3 +10,5 @@
 Thumbs.db
 .env
 .idea
+tests/Manual/
+tests/Manual/*
