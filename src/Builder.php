@@ -115,7 +115,7 @@ class Builder
     /**
      * Obtient l'instance du modèle interrogé.
      *
-     * @return \App\Models\ModelCSV
+     * @return ModelCSV
      */
     public function getModel()
     {
@@ -617,11 +617,11 @@ class Builder
         return $this;
     }
 
-
     /**
      * Alias pour limit(), pour compatibilité Eloquent.
      *
      * @param int $value
+     *
      * @return $this
      */
     public function take($value)
@@ -707,9 +707,7 @@ class Builder
      */
     public function count($columns = '*')
     {
-        $result = $this->get($columns);
-
-        return $result->count();
+        return $this->get($columns)->count();
     }
 
     /**
@@ -764,15 +762,15 @@ class Builder
         $params = [];
 
         // Gère les filtres
-        if (!empty($this->wheres)) {
+        if (! empty($this->wheres)) {
             $params['filters'] = $this->buildFilters($this->wheres);
         }
 
         // Gère l'ordre
-        if (!empty($this->orders)) {
+        if (! empty($this->orders)) {
             $sortParts = [];
             foreach ($this->orders as $order) {
-                $sortParts[] = $order['column'] . ':' . $order['direction'];
+                $sortParts[] = $order['column'].':'.$order['direction'];
             }
             $params['sort'] = implode(',', $sortParts);
         }
@@ -815,7 +813,7 @@ class Builder
                     'value' => null,
                     'boolean' => 'and',
                 ];
-            } elseif (!$this->withTrashed) {
+            } elseif (! $this->withTrashed) {
                 $wheres[] = [
                     'column' => $this->model::DELETED_AT,
                     'operator' => 'is null',
@@ -854,7 +852,7 @@ class Builder
                     if (strpos($boolean, 'not') !== false) {
                         $filters[$column]['$not'] = [$operator => $value];
                     } elseif ($boolean === 'or') {
-                        if (!isset($filters['$or'])) {
+                        if (! isset($filters['$or'])) {
                             $filters['$or'] = [];
                         }
                         $filters['$or'][] = [$column => [$operator => $value]];
@@ -873,7 +871,7 @@ class Builder
      *
      * @param array $columns
      *
-     * @return \App\Models\ModelCSV|null
+     * @return ModelCSV|null
      */
     public function first($columns = ['*'])
     {
@@ -885,7 +883,7 @@ class Builder
      *
      * @param array $columns
      *
-     * @return \App\Models\ModelCSV
+     * @return ModelCSV
      *
      * @throws \Illuminate\Database\Eloquent\ModelNotFoundException
      */
@@ -893,7 +891,7 @@ class Builder
     {
         $result = $this->first($columns);
 
-        if (!$result) {
+        if (! $result) {
             throw (new ModelNotFoundException)->setModel(
                 get_class($this->model)
             );
@@ -908,7 +906,7 @@ class Builder
      * @param mixed $id
      * @param array $columns
      *
-     * @return \App\Models\ModelCSV|null
+     * @return ModelCSV|null
      */
     public function find($id, $columns = ['*'])
     {
@@ -933,23 +931,33 @@ class Builder
             $params = $this->buildApiParameters();
 
             // Debug
-            echo "Builder::get - Récupération des données pour $csvFile\n";
+            if (config('csv-eloquent.debug', false) && app()->bound('log')) {
+                Log::debug("Builder::get - Récupération des données pour $csvFile\n");
+            }
 
             $response = $this->csvClient->getData($csvFile, $params);
 
             $records = $response['data'] ?? [];
 
             // Debug
-            echo "Builder::get - Nombre d'enregistrements récupérés: " . count($records) . "\n";
-            if (!empty($records)) {
-                echo "Builder::get - Premier enregistrement:\n";
-                print_r(array_keys($records[0]));
-                echo "\n";
+            if (config('csv-eloquent.debug', false) && app()->bound('log')) {
+                Log::debug("Builder::get - Nombre d'enregistrements récupérés: ".count($records));
+            }
+            if (! empty($records)) {
+                if (config('csv-eloquent.debug', false) && app()->bound('log')) {
+                    Log::debug("Builder::get - Premier enregistrement:\n");
+                }
+                if (config('csv-eloquent.debug', false) && app()->bound('log')) {
+                    Log::debug("\n");
+                }
             }
 
             return $this->processRecords($records, $columns);
         } catch (\Exception $e) {
-            echo "ERREUR dans Builder::get: " . $e->getMessage() . "\n";
+            if (config('csv-eloquent.debug', false) && app()->bound('log')) {
+                Log::debug('ERREUR dans Builder::get: '.$e->getMessage());
+            }
+
             return new Collection;
         }
     }
@@ -959,28 +967,38 @@ class Builder
      *
      * @param array $records Array of records from API
      * @param array $columns Columns to select
+     *
      * @return \Illuminate\Support\Collection
      */
     protected function processRecords(array $records, array $columns = ['*'])
     {
-        echo "processRecords - Début avec " . count($records) . " enregistrements\n";
+        if (config('csv-eloquent.debug', false) && app()->bound('log')) {
+            Log::debug('processRecords - Début avec '.count($records)." enregistrements\n");
+        }
 
         $models = [];
         $recordCount = 0;
 
         foreach ($records as $index => $record) {
             $recordCount++;
-            echo "Traitement de l'enregistrement #$recordCount...\n";
+            if (config('csv-eloquent.debug', false) && app()->bound('log')) {
+                Log::debug("Traitement de l'enregistrement #$recordCount...\n");
+            }
 
             try {
                 // Vérifier que record est bien un tableau
-                if (!is_array($record)) {
-                    echo "ATTENTION: L'enregistrement #$recordCount n'est pas un tableau\n";
+                if (! is_array($record)) {
+                    if (config('csv-eloquent.debug', false) && app()->bound('log')) {
+                        Log::debug("ATTENTION: L'enregistrement #$recordCount n'est pas un tableau\n");
+                    }
+
                     continue;
                 }
 
                 // Créer une nouvelle instance du modèle
-                echo "Création d'une nouvelle instance de modèle...\n";
+                if (config('csv-eloquent.debug', false) && app()->bound('log')) {
+                    Log::debug("Création d'une nouvelle instance de modèle...\n");
+                }
                 $model = $this->model->newInstance();
                 $model->exists = true;  // Marquer comme existant
 
@@ -990,41 +1008,57 @@ class Builder
                     $attribute = $this->model->mapFieldToColumn($field);
 
                     if ($index === 0) {
-                        echo "Attribution: $field => $attribute = " . (is_string($value) ? $value : gettype($value)) . "\n";
+                        if (config('csv-eloquent.debug', false) && app()->bound('log')) {
+                            Log::debug("Attribution: $field => $attribute = ".(is_string($value) ? $value : gettype($value)));
+                        }
                     }
 
                     try {
                         // Utiliser la méthode fill au lieu de manipuler attributes directement
                         $model->fillAttribute($attribute, $value);
                     } catch (\Exception $e) {
-                        echo "ERREUR lors de l'attribution de $attribute: " . $e->getMessage() . "\n";
+                        if (config('csv-eloquent.debug', false) && app()->bound('log')) {
+                            Log::debug("ERREUR lors de l'attribution de {$attribute}: ".$e->getMessage());
+                        }
                     }
                 }
 
                 $models[] = $model;
             } catch (\Exception $e) {
-                echo "EXCEPTION lors du traitement de l'enregistrement #$recordCount: " . $e->getMessage() . "\n";
+                if (config('csv-eloquent.debug', false) && app()->bound('log')) {
+                    Log::debug("EXCEPTION lors du traitement de l'enregistrement #{$recordCount}: ".$e->getMessage());
+                }
             }
         }
 
-        echo "processRecords - Modèles créés: " . count($models) . "\n";
+        if (config('csv-eloquent.debug', false) && app()->bound('log')) {
+            Log::debug('processRecords - Modèles créés: '.count($models));
+        }
 
         // Vérifier le premier modèle
-        if (!empty($models)) {
-            echo "Premier modèle: " . get_class($models[0]) . "\n";
+        if (! empty($models)) {
+            if (config('csv-eloquent.debug', false) && app()->bound('log')) {
+                Log::debug('Premier modèle: '.get_class($models[0]));
+            }
 
             $firstModel = $models[0];
-            echo "ID du premier modèle: " . $firstModel->getKey() . "\n";
-            echo "Status du premier modèle: " . $firstModel->getAttribute('status') . "\n";
+            if (config('csv-eloquent.debug', false) && app()->bound('log')) {
+                Log::debug('ID du premier modèle: '.$firstModel->getKey());
+            }
+            if (config('csv-eloquent.debug', false) && app()->bound('log')) {
+                Log::debug('Status du premier modèle: '.$firstModel->getAttribute('status'));
+            }
         }
 
         // Crée une collection de modèles
         $collection = $this->model->newCollection($models);
 
-        echo "Collection créée avec " . $collection->count() . " éléments\n";
+        if (config('csv-eloquent.debug', false) && app()->bound('log')) {
+            Log::debug('Collection créée avec '.$collection->count()." éléments\n");
+        }
 
         // Applique les clauses having si nécessaire
-        if (!empty($this->havings)) {
+        if (! empty($this->havings)) {
             $collection = $this->applyHavingClauses($collection);
         }
 
@@ -1166,7 +1200,7 @@ class Builder
      * @param string $cursorName
      * @param string|null $cursor
      *
-     * @return \Illuminate\Pagination\CursorPaginator
+     * @return CursorPaginator
      */
     public function cursorPaginate($perPage = 15, $columns = ['*'], $cursorName = 'cursor', $cursor = null)
     {

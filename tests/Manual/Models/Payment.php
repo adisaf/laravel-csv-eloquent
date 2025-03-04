@@ -70,7 +70,7 @@ class Payment extends ModelCSV
      */
     public function getTransfers()
     {
-        if (!$this->transaction_id) {
+        if (! $this->transaction_id) {
             return new Collection;
         }
 

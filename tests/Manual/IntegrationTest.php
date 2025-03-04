@@ -39,6 +39,7 @@ class IntegrationTest extends TestCase
      * Définir l'environnement.
      *
      * @param \Illuminate\Foundation\Application $app
+     *
      * @return void
      */
     protected function getEnvironmentSetUp($app)
@@ -50,7 +51,7 @@ class IntegrationTest extends TestCase
         $app['config']->set('csv-eloquent.api_url', $this->envVars['CSV_API_URL'] ?? 'http://localhost:8000');
         $app['config']->set('csv-eloquent.username', $this->envVars['CSV_API_USERNAME'] ?? 'test');
         $app['config']->set('csv-eloquent.password', $this->envVars['CSV_API_PASSWORD'] ?? 'test');
-        $app['config']->set('csv-eloquent.cache_ttl', (int)($this->envVars['CSV_API_CACHE_TTL'] ?? 0));
+        $app['config']->set('csv-eloquent.cache_ttl', (int) ($this->envVars['CSV_API_CACHE_TTL'] ?? 0));
         $app['config']->set('csv-eloquent.cache_driver', 'array');
 
         // Activer le mode debug
@@ -73,7 +74,7 @@ class IntegrationTest extends TestCase
             empty($this->envVars['CSV_API_USERNAME']) ||
             empty($this->envVars['CSV_API_PASSWORD'])) {
             $this->markTestSkipped(
-                'Variables d\'environnement non configurées dans le fichier .env. ' .
+                'Variables d\'environnement non configurées dans le fichier .env. '.
                 'Ajoutez CSV_API_URL, CSV_API_USERNAME, CSV_API_PASSWORD dans votre fichier .env'
             );
         }
@@ -118,15 +119,16 @@ class IntegrationTest extends TestCase
         try {
             // Déterminer le chemin vers le fichier .env
             $paths = [
-                __DIR__ . '/../../../.env',
-                __DIR__ . '/../../../../.env',
-                getcwd() . '/.env',
+                __DIR__.'/../../../.env',
+                __DIR__.'/../../../../.env',
+                getcwd().'/.env',
             ];
 
             $envPath = null;
             foreach ($paths as $path) {
                 if (file_exists($path)) {
                     $envPath = dirname($path);
+
                     break;
                 }
             }
@@ -147,7 +149,7 @@ class IntegrationTest extends TestCase
                 echo "AVERTISSEMENT: Fichier .env non trouvé. Essayez de créer un fichier .env à la racine.\n";
             }
         } catch (\Exception $e) {
-            echo 'ERREUR lors du chargement du fichier .env: ' . $e->getMessage() . "\n";
+            echo 'ERREUR lors du chargement du fichier .env: '.$e->getMessage()."\n";
         }
     }
 
@@ -158,16 +160,16 @@ class IntegrationTest extends TestCase
     {
         // Affichage des informations sur le modèle
         echo "=== INFORMATION SUR LES MODÈLES ===\n";
-        $payment = new Payment();
+        $payment = new Payment;
         $paymentCsvFile = $payment->getCsvFile();
         echo "- Payment CSV file: {$paymentCsvFile}\n";
 
-        $transfer = new Transfer();
+        $transfer = new Transfer;
         $transferCsvFile = $transfer->getCsvFile();
         echo "- Transfer CSV file: {$transferCsvFile}\n";
 
-        echo "- Chemin complet Payment: " . get_class($payment) . "\n";
-        echo "- Chemin complet Transfer: " . get_class($transfer) . "\n";
+        echo '- Chemin complet Payment: '.get_class($payment)."\n";
+        echo '- Chemin complet Transfer: '.get_class($transfer)."\n";
 
         // Obtenir directement les données brutes pour vérifier
         echo "\n=== TEST API DIRECT ===\n";
@@ -175,30 +177,31 @@ class IntegrationTest extends TestCase
 
         try {
             $rawData = $csvClient->getData($paymentCsvFile, ['pagination' => ['limit' => 5]]);
-            echo "Données brutes Payment: " . count($rawData['data'] ?? []) . " enregistrements\n";
+            echo 'Données brutes Payment: '.count($rawData['data'] ?? [])." enregistrements\n";
 
             // Afficher le premier enregistrement pour analyse
-            if (!empty($rawData['data'])) {
+            if (! empty($rawData['data'])) {
                 $firstRecord = $rawData['data'][0];
                 echo "Premier enregistrement Payment:\n";
-                echo "- ID: " . ($firstRecord['id'] ?? 'N/A') . "\n";
-                echo "- Montant: " . ($firstRecord['amount'] ?? 'N/A') . "\n";
-                echo "- Statut: " . ($firstRecord['status'] ?? 'N/A') . "\n";
+                echo '- ID: '.($firstRecord['id'] ?? 'N/A')."\n";
+                echo '- Montant: '.($firstRecord['amount'] ?? 'N/A')."\n";
+                echo '- Statut: '.($firstRecord['status'] ?? 'N/A')."\n";
             }
         } catch (\Exception $e) {
-            echo "ERREUR API Payment: " . $e->getMessage() . "\n";
+            echo 'ERREUR API Payment: '.$e->getMessage()."\n";
         }
 
         // Tester avec le modèle Payment
         echo "\n=== TEST MODÈLE PAYMENT ===\n";
+
         try {
             $payments = Payment::limit(5)->get();
-            echo "Collection Payment: " . $payments->count() . " éléments\n";
+            echo 'Collection Payment: '.$payments->count()." éléments\n";
 
             // Utiliser instanceof pour les deux types possibles de collection
             $this->assertTrue(
                 $payments instanceof Collection || $payments instanceof CsvCollection,
-                "La collection devrait être une instance de Collection ou CsvCollection"
+                'La collection devrait être une instance de Collection ou CsvCollection'
             );
 
             $this->outputTestInfo('Récupération de paiements', [
@@ -206,26 +209,26 @@ class IntegrationTest extends TestCase
                 'Premier paiement ID' => $payments->first() ? $payments->first()->id : 'N/A',
             ]);
         } catch (\Exception $e) {
-            echo "ERREUR modèle Payment: " . $e->getMessage() . "\n";
+            echo 'ERREUR modèle Payment: '.$e->getMessage()."\n";
         }
 
         // Créer des instances manuelles pour vérifier
         echo "\n=== TEST DE CRÉATION MANUELLE ===\n";
-        $manualModel = new Payment();
+        $manualModel = new Payment;
 
         // Utiliser fillAttribute au lieu d'accéder directement à $attributes
         $manualModel->fillAttribute('id', 12345);
         $manualModel->fillAttribute('amount', 1000);
         $manualModel->fillAttribute('status', 'Y');
 
-        echo "Modèle créé manuellement: ID=" . $manualModel->getAttribute('id') . "\n";
+        echo 'Modèle créé manuellement: ID='.$manualModel->getAttribute('id')."\n";
 
         $manualCollection = new CsvCollection([$manualModel]);
-        echo "Collection manuelle: " . $manualCollection->count() . " éléments\n";
-        echo "Premier élément ID: " . ($manualCollection->first() ? $manualCollection->first()->getAttribute('id') : 'N/A') . "\n";
+        echo 'Collection manuelle: '.$manualCollection->count()." éléments\n";
+        echo 'Premier élément ID: '.($manualCollection->first() ? $manualCollection->first()->getAttribute('id') : 'N/A')."\n";
 
         // Vérifier qu'une collection avec un modèle manuel fonctionne
-        $this->assertEquals(1, $manualCollection->count(), "La collection manuelle devrait avoir 1 élément");
+        $this->assertEquals(1, $manualCollection->count(), 'La collection manuelle devrait avoir 1 élément');
         $this->assertEquals(12345, $manualCollection->first()->getAttribute('id'), "L'ID du premier élément devrait être 12345");
     }
 
@@ -236,7 +239,7 @@ class IntegrationTest extends TestCase
     {
         echo "\n=== {$title} ===\n";
         foreach ($data as $key => $value) {
-            echo "{$key}: " . (is_array($value) ? json_encode($value) : $value) . "\n";
+            echo "{$key}: ".(is_array($value) ? json_encode($value) : $value)."\n";
         }
         echo "===================\n";
     }

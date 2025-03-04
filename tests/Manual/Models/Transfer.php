@@ -63,7 +63,7 @@ class Transfer extends ModelCSV
      */
     public function getPayment()
     {
-        if (!$this->merchant_transaction_id) {
+        if (! $this->merchant_transaction_id) {
             return null;
         }
 
