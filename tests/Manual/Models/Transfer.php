@@ -5,6 +5,7 @@ namespace Adisaf\CsvEloquent\Tests\Manual\Models;
 use Adisaf\CsvEloquent\Models\ModelCSV;
 use Adisaf\CsvEloquent\Traits\HasCsvSchema;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\Log;
 
 class Transfer extends ModelCSV
 {
@@ -16,7 +17,7 @@ class Transfer extends ModelCSV
      *
      * @var string
      */
-    protected $csvFile = 'transferts.csv';
+    protected $csvFile = 'transfers';  // Assurez-vous que ce nom correspond à celui utilisé dans l'API
 
     /**
      * Les attributs qui doivent être convertis.
@@ -44,7 +45,7 @@ class Transfer extends ModelCSV
      * @var array
      */
     protected $columnMapping = [
-        // Pas besoin de mappage car les noms sont identiques
+        // Si vos noms de colonnes diffèrent entre l'API et le modèle, définissez-les ici
     ];
 
     /**
@@ -58,14 +59,12 @@ class Transfer extends ModelCSV
 
     /**
      * Simule la récupération du paiement associé à ce transfert.
-     * Ceci est une méthode personnalisée qui simule une relation, puisque
-     * les relations directes ne sont pas prises en charge par l'API CSV.
      *
      * @return \Adisaf\CsvEloquent\Models\ModelCSV|null
      */
     public function getPayment()
     {
-        if (! $this->merchant_transaction_id) {
+        if (!$this->merchant_transaction_id) {
             return null;
         }
 
@@ -73,66 +72,22 @@ class Transfer extends ModelCSV
     }
 
     /**
-     * Scope des transferts terminés (succès).
+     * Surcharge pour le débogage
      *
-     * @param \Adisaf\CsvEloquent\Builder $query
-     *
-     * @return \Adisaf\CsvEloquent\Builder
+     * @param array $attributes
+     * @param bool $exists
+     * @return static
      */
-    public function scopeSuccessful($query)
+    public function newInstance($attributes = [], $exists = false)
     {
-        return $query->where('status', 'Y');
-    }
+        if (config('csv-eloquent.debug', false) && app()->bound('log')) {
+            Log::debug('Transfer::newInstance called', [
+                'attributesCount' => count($attributes),
+                'exists' => $exists,
+                'csvFile' => $this->getCsvFile()
+            ]);
+        }
 
-    /**
-     * Scope des transferts échoués.
-     *
-     * @param \Adisaf\CsvEloquent\Builder $query
-     *
-     * @return \Adisaf\CsvEloquent\Builder
-     */
-    public function scopeFailed($query)
-    {
-        return $query->where('status', 'N');
-    }
-
-    /**
-     * Scope des transferts pour un pays spécifique.
-     *
-     * @param \Adisaf\CsvEloquent\Builder $query
-     * @param string $countryCode
-     *
-     * @return \Adisaf\CsvEloquent\Builder
-     */
-    public function scopeForCountry($query, $countryCode)
-    {
-        return $query->where('country', $countryCode);
-    }
-
-    /**
-     * Scope des transferts pour un opérateur spécifique.
-     *
-     * @param \Adisaf\CsvEloquent\Builder $query
-     * @param string $carrier
-     *
-     * @return \Adisaf\CsvEloquent\Builder
-     */
-    public function scopeForCarrier($query, $carrier)
-    {
-        return $query->where('carrier_name', $carrier);
-    }
-
-    /**
-     * Scope des transferts entre des dates spécifiques.
-     *
-     * @param \Adisaf\CsvEloquent\Builder $query
-     * @param string $startDate
-     * @param string $endDate
-     *
-     * @return \Adisaf\CsvEloquent\Builder
-     */
-    public function scopeBetweenDates($query, $startDate, $endDate)
-    {
-        return $query->whereBetween('created_at', [$startDate, $endDate]);
+        return parent::newInstance($attributes, $exists);
     }
 }

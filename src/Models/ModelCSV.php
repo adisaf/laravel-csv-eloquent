@@ -30,6 +30,13 @@ abstract class ModelCSV implements Arrayable, Jsonable, JsonSerializable
     use HidesAttributes;
 
     /**
+     * Les scopes globaux enregistrés pour le modèle.
+     *
+     * @var array
+     */
+    protected static $globalScopes = [];
+
+    /**
      * Le nom du fichier CSV associé au modèle.
      *
      * @var string
@@ -39,7 +46,7 @@ abstract class ModelCSV implements Arrayable, Jsonable, JsonSerializable
     /**
      * L'instance du client API CSV.
      *
-     * @var CsvClient
+     * @var \Adisaf\CsvEloquent\CsvClient
      */
     protected static $csvClient;
 
@@ -161,7 +168,7 @@ abstract class ModelCSV implements Arrayable, Jsonable, JsonSerializable
      */
     protected function bootIfNotBooted()
     {
-        if (! isset(static::$booted[static::class])) {
+        if (!isset(static::$booted[static::class])) {
             static::$booted[static::class] = true;
 
             static::bootTraits();
@@ -178,7 +185,7 @@ abstract class ModelCSV implements Arrayable, Jsonable, JsonSerializable
         $class = static::class;
 
         foreach (class_uses_recursive($class) as $trait) {
-            if (method_exists($class, $method = 'boot'.class_basename($trait))) {
+            if (method_exists($class, $method = 'boot' . class_basename($trait))) {
                 forward_static_call([$class, $method]);
             }
         }
@@ -217,7 +224,7 @@ abstract class ModelCSV implements Arrayable, Jsonable, JsonSerializable
      */
     public function getCsvFile()
     {
-        return $this->csvFile ?? Str::snake(Str::pluralStudly(class_basename($this))).'.csv';
+        return $this->csvFile ?? Str::snake(Str::pluralStudly(class_basename($this))) . '.csv';
     }
 
     /**
@@ -237,11 +244,11 @@ abstract class ModelCSV implements Arrayable, Jsonable, JsonSerializable
     /**
      * Obtient l'instance du client API CSV.
      *
-     * @return \App\Models\Csv\CsvClient
+     * @return \Adisaf\CsvEloquent\CsvClient
      */
     public static function getCsvClient()
     {
-        if (! static::$csvClient) {
+        if (!static::$csvClient) {
             static::$csvClient = new CsvClient;
         }
 
@@ -261,7 +268,7 @@ abstract class ModelCSV implements Arrayable, Jsonable, JsonSerializable
     /**
      * Obtient un nouveau constructeur de requête pour le modèle.
      *
-     * @return CsvClient
+     * @return \Adisaf\CsvEloquent\Builder
      */
     public function newQuery()
     {
@@ -271,7 +278,7 @@ abstract class ModelCSV implements Arrayable, Jsonable, JsonSerializable
     /**
      * Obtient une nouvelle instance de constructeur de requête pour le fichier CSV.
      *
-     * @return CsvClient
+     * @return \Adisaf\CsvEloquent\Builder
      */
     protected function newCsvBuilder()
     {
@@ -281,10 +288,19 @@ abstract class ModelCSV implements Arrayable, Jsonable, JsonSerializable
     /**
      * Crée une nouvelle instance de Collection Eloquent.
      *
+     * @param array $models
      * @return \Illuminate\Support\Collection
      */
     public function newCollection(array $models = [])
     {
+        // Journalisation pour débogage
+        if (config('csv-eloquent.debug', false) && app()->bound('log')) {
+            Log::debug('Created new collection', [
+                'modelClass' => static::class,
+                'modelsCount' => count($models)
+            ]);
+        }
+
         return new Collection($models);
     }
 
@@ -380,7 +396,7 @@ abstract class ModelCSV implements Arrayable, Jsonable, JsonSerializable
      */
     public function __isset($key)
     {
-        return ! is_null($this->getAttribute($key));
+        return !is_null($this->getAttribute($key));
     }
 
     /**
@@ -491,7 +507,7 @@ abstract class ModelCSV implements Arrayable, Jsonable, JsonSerializable
 
             return $response['data']['schema'] ?? [];
         } catch (\Exception $e) {
-            Log::error('Échec de la récupération du schéma pour le fichier CSV: '.$this->getCsvFile(), [
+            Log::error('Échec de la récupération du schéma pour le fichier CSV: ' . $this->getCsvFile(), [
                 'exception' => $e->getMessage(),
             ]);
 
@@ -525,7 +541,7 @@ abstract class ModelCSV implements Arrayable, Jsonable, JsonSerializable
      * @param mixed $id
      * @param array $columns
      *
-     * @return \App\Models\ModelCSV|Collection|null
+     * @return \Adisaf\CsvEloquent\Models\ModelCSV|Collection|null
      */
     public static function find($id, $columns = ['*'])
     {
@@ -563,7 +579,7 @@ abstract class ModelCSV implements Arrayable, Jsonable, JsonSerializable
      * @param mixed $id
      * @param array $columns
      *
-     * @return \App\Models\ModelCSV
+     * @return \Adisaf\CsvEloquent\Models\ModelCSV
      *
      * @throws \Illuminate\Database\Eloquent\ModelNotFoundException
      */
@@ -575,7 +591,7 @@ abstract class ModelCSV implements Arrayable, Jsonable, JsonSerializable
             if (count($result) === count(array_unique($id))) {
                 return $result;
             }
-        } elseif (! is_null($result)) {
+        } elseif (!is_null($result)) {
             return $result;
         }
 
@@ -594,17 +610,56 @@ abstract class ModelCSV implements Arrayable, Jsonable, JsonSerializable
      */
     public function newInstance($attributes = [], $exists = false)
     {
-        $model = new static((array) $attributes);
+        // Débogage
+        if (config('csv-eloquent.debug', false) && app()->bound('log')) {
+            Log::debug('ModelCSV::newInstance called for ' . get_class($this), [
+                'attributes' => array_keys($attributes),
+                'exists' => $exists
+            ]);
+        }
 
-        $model->exists = $exists;
+        // Obtenir le nom complet de la classe actuelle
+        $className = get_class($this);
 
-        return $model;
+        try {
+            // Créer une instance de cette classe
+            $model = new $className();
+
+            // Marquer si elle existe déjà
+            $model->exists = $exists;
+
+            // Remplir avec les attributs fournis
+            if (!empty($attributes)) {
+                $model->fill($attributes);
+            }
+
+            return $model;
+        } catch (\Exception $e) {
+            // Log l'erreur
+            if (app()->bound('log')) {
+                Log::error('ModelCSV::newInstance - Error creating model instance', [
+                    'exception' => $e->getMessage(),
+                    'class' => $className
+                ]);
+            }
+
+            // Fallback à l'approche simple
+            $model = new static();
+            $model->exists = $exists;
+
+            // Remplir avec les attributs fournis
+            if (!empty($attributes)) {
+                $model->fill($attributes);
+            }
+
+            return $model;
+        }
     }
 
     /**
      * Commence à interroger le modèle.
      *
-     * @return CsvClient
+     * @return \Adisaf\CsvEloquent\Builder
      */
     public static function query()
     {

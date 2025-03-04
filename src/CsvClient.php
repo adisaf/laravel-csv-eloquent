@@ -42,19 +42,12 @@ class CsvClient
      *
      * @return void
      */
-    public function __construct($data = [])
+    public function __construct()
     {
-        if (empty($data)) {
-            $this->baseUrl = config('csv-eloquent.api_url');
-            $this->username = config('csv-eloquent.username');
-            $this->password = config('csv-eloquent.password');
-            $this->cacheTtl = config('csv-eloquent.cache_ttl', 60);
-        } else {
-            $this->baseUrl = $data['api_url'];
-            $this->username = $data['username'];
-            $this->password = $data['password'];
-            $this->cacheTtl = $data['cache_ttl'];
-        }
+        $this->baseUrl = config('csv-eloquent.api_url');
+        $this->username = config('csv-eloquent.username');
+        $this->password = config('csv-eloquent.password');
+        $this->cacheTtl = config('csv-eloquent.cache_ttl', 60);
     }
 
     /**
@@ -62,17 +55,20 @@ class CsvClient
      *
      * @return array
      *
-     * @throws CsvApiException
+     * @throws \Adisaf\CsvEloquent\Exceptions\CsvApiException
      */
     public function getFiles()
     {
         $cacheKey = 'csv_api_files';
 
-        return Cache::remember($cacheKey, $this->cacheTtl, function () {
-            $response = $this->makeRequest('GET', '/api/');
-
-            return $response;
-        });
+        if (app()->bound('cache')) {
+            return Cache::remember($cacheKey, $this->cacheTtl, function () {
+                $response = $this->makeRequest('GET', '/api/');
+                return $response;
+            });
+        } else {
+            return $this->makeRequest('GET', '/api/');
+        }
     }
 
     /**
@@ -82,17 +78,20 @@ class CsvClient
      *
      * @return array
      *
-     * @throws CsvApiException
+     * @throws \Adisaf\CsvEloquent\Exceptions\CsvApiException
      */
     public function getData($file, array $params = [])
     {
         $cacheKey = 'csv_api_data_' . $file . '_' . md5(json_encode($params));
 
-        return Cache::remember($cacheKey, $this->cacheTtl, function () use ($file, $params) {
-            $response = $this->makeRequest('GET', '/api/' . $file, $params);
-
-            return $response;
-        });
+        if (app()->bound('cache')) {
+            return Cache::remember($cacheKey, $this->cacheTtl, function () use ($file, $params) {
+                $response = $this->makeRequest('GET', '/api/' . $file, $params);
+                return $response;
+            });
+        } else {
+            return $this->makeRequest('GET', '/api/' . $file, $params);
+        }
     }
 
     /**
@@ -102,17 +101,20 @@ class CsvClient
      *
      * @return array
      *
-     * @throws CsvApiException
+     * @throws \Adisaf\CsvEloquent\Exceptions\CsvApiException
      */
     public function getSchema($file)
     {
         $cacheKey = 'csv_api_schema_' . $file;
 
-        return Cache::remember($cacheKey, $this->cacheTtl * 10, function () use ($file) {
-            $response = $this->makeRequest('GET', '/api/' . $file . '/schema');
-
-            return $response;
-        });
+        if (app()->bound('cache')) {
+            return Cache::remember($cacheKey, $this->cacheTtl * 10, function () use ($file) {
+                $response = $this->makeRequest('GET', '/api/' . $file . '/schema');
+                return $response;
+            });
+        } else {
+            return $this->makeRequest('GET', '/api/' . $file . '/schema');
+        }
     }
 
     /**
@@ -123,11 +125,12 @@ class CsvClient
      *
      * @return array
      *
-     * @throws CsvApiException
+     * @throws \Adisaf\CsvEloquent\Exceptions\CsvApiException
      */
     protected function makeRequest($method, $endpoint, array $params = [])
     {
         try {
+            // Ne pas modifier l'endpoint, utilisez-le tel quel
             $url = rtrim($this->baseUrl, '/') . $endpoint;
 
             $response = Http::withBasicAuth($this->username, $this->password)
@@ -135,12 +138,25 @@ class CsvClient
                 ->retry(3, 1000)
                 ->$method($url, $params);
 
-            if ($response->failed()) {
-                Log::error('Échec de la requête API CSV', [
+            // Débogage de la réponse, à supprimer en production
+            if (config('csv-eloquent.debug', false)) {
+                Log::debug('CSV API Response', [
                     'url' => $url,
                     'status' => $response->status(),
-                    'response' => $response->json() ?? $response->body(),
+                    'data' => $response->json()
                 ]);
+            }
+
+            if ($response->failed()) {
+                if (app()->bound('log')) {
+                    Log::error('Échec de la requête API CSV', [
+                        'url' => $url,
+                        'status' => $response->status(),
+                        'response' => $response->json() ?? $response->body(),
+                    ]);
+                } else {
+                    error_log('Échec de la requête API CSV: ' . $response->status() . ' pour ' . $url);
+                }
 
                 throw new CsvApiException(
                     'Échec de la requête API CSV: ' . $response->status(),
@@ -151,10 +167,14 @@ class CsvClient
             return $response->json();
         } catch (\Exception $e) {
             if (!$e instanceof CsvApiException) {
-                Log::error('Exception lors de la requête API CSV', [
-                    'exception' => $e->getMessage(),
-                    'endpoint' => $endpoint,
-                ]);
+                if (app()->bound('log')) {
+                    Log::error('Exception lors de la requête API CSV', [
+                        'exception' => $e->getMessage(),
+                        'endpoint' => $endpoint,
+                    ]);
+                } else {
+                    error_log('Exception lors de la requête API CSV: ' . $e->getMessage() . ' pour ' . $endpoint);
+                }
 
                 throw new CsvApiException(
                     'Exception lors de la requête API CSV: ' . $e->getMessage(),
@@ -176,11 +196,15 @@ class CsvClient
      */
     public function clearCache($file = null)
     {
+        if (!app()->bound('cache')) {
+            return;
+        }
+
         if ($file) {
             Cache::forget('csv_api_schema_' . $file);
-            // Nous ne pouvons pas facilement vider tous les caches de données
-            // car ils dépendent des paramètres, donc nous utilisons un motif
-            Cache::forget('csv_api_data_' . $file . '_*');
+            // Pour les clés avec pattern, on ne peut pas utiliser Cache::forget directement
+            // Il faudrait implémenter une méthode plus complexe pour effacer par pattern
+            Cache::flush(); // Alternative plus drastique mais fonctionnelle
         } else {
             // Vide tous les caches liés à l'API CSV
             $keys = ['csv_api_files'];

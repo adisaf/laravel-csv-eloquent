@@ -22,7 +22,7 @@ class Builder
     /**
      * L'instance du client API CSV.
      *
-     * @var \Adisaf\CsvEloquent\CsvClient
+     * @var CsvClient
      */
     protected $csvClient;
 
@@ -92,7 +92,6 @@ class Builder
     /**
      * Crée une nouvelle instance de constructeur de requête.
      *
-     * @param \App\Models\Csv\CsvClient $csvClient
      *
      * @return void
      */
@@ -753,15 +752,15 @@ class Builder
         $params = [];
 
         // Gère les filtres
-        if (! empty($this->wheres)) {
+        if (!empty($this->wheres)) {
             $params['filters'] = $this->buildFilters($this->wheres);
         }
 
         // Gère l'ordre
-        if (! empty($this->orders)) {
+        if (!empty($this->orders)) {
             $sortParts = [];
             foreach ($this->orders as $order) {
-                $sortParts[] = $order['column'].':'.$order['direction'];
+                $sortParts[] = $order['column'] . ':' . $order['direction'];
             }
             $params['sort'] = implode(',', $sortParts);
         }
@@ -804,7 +803,7 @@ class Builder
                     'value' => null,
                     'boolean' => 'and',
                 ];
-            } elseif (! $this->withTrashed) {
+            } elseif (!$this->withTrashed) {
                 $wheres[] = [
                     'column' => $this->model::DELETED_AT,
                     'operator' => 'is null',
@@ -843,7 +842,7 @@ class Builder
                     if (strpos($boolean, 'not') !== false) {
                         $filters[$column]['$not'] = [$operator => $value];
                     } elseif ($boolean === 'or') {
-                        if (! isset($filters['$or'])) {
+                        if (!isset($filters['$or'])) {
                             $filters['$or'] = [];
                         }
                         $filters['$or'][] = [$column => [$operator => $value]];
@@ -882,7 +881,7 @@ class Builder
     {
         $result = $this->first($columns);
 
-        if (! $result) {
+        if (!$result) {
             throw (new ModelNotFoundException)->setModel(
                 get_class($this->model)
             );
@@ -913,7 +912,7 @@ class Builder
      *
      * @param array $columns
      *
-     * @return \Illuminate\Support\Collection
+     * @return Collection
      */
     public function get($columns = ['*'])
     {
@@ -925,12 +924,19 @@ class Builder
 
             $records = $response['data'] ?? [];
 
+            // Débogage pour voir combien d'enregistrements sont retournés
+            if (config('csv-eloquent.debug', false) && app()->bound('log')) {
+                Log::debug('API CSV records count: ' . count($records));
+            }
+
             return $this->processRecords($records, $columns);
         } catch (\Exception $e) {
-            Log::error('Échec de la récupération des données depuis l\'API CSV', [
-                'exception' => $e->getMessage(),
-                'file' => $this->model->getCsvFile(),
-            ]);
+            if (class_exists('\Illuminate\Support\Facades\Log') && app()->bound('log')) {
+                Log::error('Échec de la récupération des données depuis l\'API CSV', [
+                    'exception' => $e->getMessage(),
+                    'file' => $this->model->getCsvFile(),
+                ]);
+            }
 
             return new Collection;
         }
@@ -939,29 +945,80 @@ class Builder
     /**
      * Traite la réponse API et la convertit en une collection de modèles.
      *
-     * @return \Illuminate\Support\Collection
+     * @param array $records Array of records from API
+     * @param array $columns Columns to select
+     * @return Collection
      */
     protected function processRecords(array $records, array $columns = ['*'])
     {
         $models = [];
 
+        // Débogage avancé
+        if (config('csv-eloquent.debug', false) && app()->bound('log')) {
+            Log::debug('Builder::processRecords - Processing records', [
+                'recordsCount' => count($records),
+                'modelClass' => get_class($this->model),
+                'csvFile' => $this->model->getCsvFile(),
+                'firstRecord' => !empty($records) ? array_keys($records[0]) : []
+            ]);
+        }
+
         foreach ($records as $record) {
-            $model = $this->model->newInstance([], true);
+            try {
+                // Vérifier que record est bien un tableau
+                if (!is_array($record)) {
+                    Log::warning('Builder::processRecords - Record is not an array', [
+                        'record' => $record
+                    ]);
+                    continue;
+                }
 
-            // Convertit les champs API en attributs de modèle
-            foreach ($record as $field => $value) {
-                $attribute = $this->model->mapFieldToColumn($field);
-                $model->setAttribute($attribute, $value);
+                // Créer une nouvelle instance du modèle
+                $model = $this->model->newInstance();
+                $model->exists = true;  // Marquer comme existant
+
+                // Convertit les champs API en attributs de modèle
+                foreach ($record as $field => $value) {
+                    $attribute = $this->model->mapFieldToColumn($field);
+
+                    // Débogage pour chaque attribut si nécessaire
+                    if (config('csv-eloquent.debug', false) && app()->bound('log') && rand(0, 100) < 2) { // échantillonnage pour éviter trop de logs
+                        Log::debug('Builder::processRecords - Setting attribute', [
+                            'field' => $field,
+                            'attribute' => $attribute,
+                            'value' => $value
+                        ]);
+                    }
+
+                    $model->setAttribute($attribute, $value);
+                }
+
+                $models[] = $model;
+            } catch (\Exception $e) {
+                // Log l'erreur et continue avec l'enregistrement suivant
+                if (app()->bound('log')) {
+                    Log::error('Builder::processRecords - Error processing record', [
+                        'exception' => $e->getMessage(),
+                        'trace' => $e->getTraceAsString(),
+                        'record' => $record
+                    ]);
+                }
             }
+        }
 
-            $models[] = $model;
+        // Débogage du nombre de modèles créés
+        if (config('csv-eloquent.debug', false) && app()->bound('log')) {
+            Log::debug('Builder::processRecords - Models created', [
+                'modelsCount' => count($models),
+                'modelClass' => get_class($this->model)
+            ]);
         }
 
         // Crée une collection de modèles
         $collection = $this->model->newCollection($models);
 
         // Applique les clauses having si nécessaire
-        if (! empty($this->havings)) {
+        if (!empty($this->havings)) {
             $collection = $this->applyHavingClauses($collection);
         }
 
@@ -971,7 +1028,7 @@ class Builder
     /**
      * Applique les clauses having à la collection.
      *
-     * @return \Illuminate\Support\Collection
+     * @return Collection
      */
     protected function applyHavingClauses(Collection $collection)
     {
