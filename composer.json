@@ -1,0 +1,62 @@
+{
+    "name": "paymetrust/laravel-csv-eloquent",
+    "version": "1.0.0",
+    "description": "Une extension Laravel qui émule Eloquent ORM pour les fichiers CSV via API REST",
+    "type": "library",
+    "license": "proprietary",
+    "authors": [
+        {
+            "name": "Fawaz ADISA",
+            "email": "adisa.fawaz@paymetrust.net"
+        }
+    ],
+    "require": {
+        "php": "^8.0",
+        "illuminate/support": "^8.0|^9.0|^10.0|^11.0|^12.0",
+        "illuminate/database": "^8.0|^9.0|^10.0|^11.0|^12.0",
+        "illuminate/http": "^8.0|^9.0|^10.0|^11.0|^12.0",
+        "illuminate/cache": "^8.0|^9.0|^10.0|^11.0|^12.0",
+        "guzzlehttp/guzzle": "^7.0|^8.0"
+    },
+    "require-dev": {
+        "orchestra/testbench": "^6.0|^7.0|^8.0|^9.0|^10.0",
+        "phpunit/phpunit": "^9.0|^10.0|^11.0",
+        "mockery/mockery": "^1.4",
+        "laravel/pint": "^1.0",
+        "phpstan/phpstan": "^1.10"
+    },
+    "autoload": {
+        "psr-4": {
+            "VotreOrganisation\\CsvEloquent\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "VotreOrganisation\\CsvEloquent\\Tests\\": "tests/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "VotreOrganisation\\CsvEloquent\\CsvEloquentServiceProvider"
+            ]
+        }
+    },
+    "scripts": {
+        "test": "vendor/bin/phpunit",
+        "test-coverage": "vendor/bin/phpunit --coverage-html coverage",
+        "pint": "vendor/bin/pint",
+        "lint": "vendor/bin/pint --test",
+        "stan": "vendor/bin/phpstan analyse",
+        "analyze": [
+            "@pint",
+            "@stan",
+            "@test"
+        ]
+    },
+    "config": {
+        "sort-packages": true
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
+}
