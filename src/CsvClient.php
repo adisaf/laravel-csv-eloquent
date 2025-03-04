@@ -2,7 +2,7 @@
 
 namespace Adisaf\CsvEloquent;
 
-use App\Exceptions\CsvApiException;
+use Adisaf\CsvEloquent\Exceptions\CsvApiException;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -55,7 +55,7 @@ class CsvClient
      *
      * @return array
      *
-     * @throws \App\Exceptions\CsvApiException
+     * @throws CsvApiException
      */
     public function getFiles()
     {
@@ -75,7 +75,7 @@ class CsvClient
      *
      * @return array
      *
-     * @throws \App\Exceptions\CsvApiException
+     * @throws CsvApiException
      */
     public function getData($file, array $params = [])
     {
@@ -95,7 +95,7 @@ class CsvClient
      *
      * @return array
      *
-     * @throws \App\Exceptions\CsvApiException
+     * @throws CsvApiException
      */
     public function getSchema($file)
     {
@@ -116,7 +116,7 @@ class CsvClient
      *
      * @return array
      *
-     * @throws \App\Exceptions\CsvApiException
+     * @throws CsvApiException
      */
     protected function makeRequest($method, $endpoint, array $params = [])
     {

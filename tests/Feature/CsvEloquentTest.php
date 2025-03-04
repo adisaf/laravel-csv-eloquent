@@ -2,9 +2,9 @@
 
 namespace Adisaf\CsvEloquent\Tests\Feature;
 
-use Illuminate\Support\Collection;
 use Adisaf\CsvEloquent\Tests\Fixtures\TestModel;
 use Adisaf\CsvEloquent\Tests\TestCase;
+use Illuminate\Support\Collection;
 
 class CsvEloquentTest extends TestCase
 {

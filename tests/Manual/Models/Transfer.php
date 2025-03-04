@@ -2,9 +2,9 @@
 
 namespace Adisaf\CsvEloquent\Tests\Manual\Models;
 
-use Illuminate\Database\Eloquent\SoftDeletes;
 use Adisaf\CsvEloquent\Models\ModelCSV;
 use Adisaf\CsvEloquent\Traits\HasCsvSchema;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Transfer extends ModelCSV
 {

@@ -2,11 +2,11 @@
 
 namespace Adisaf\CsvEloquent\Tests\Unit;
 
-use Illuminate\Support\Collection;
-use Mockery;
 use Adisaf\CsvEloquent\Builder;
 use Adisaf\CsvEloquent\Models\ModelCSV;
 use Adisaf\CsvEloquent\Tests\TestCase;
+use Illuminate\Support\Collection;
+use Mockery;
 
 class BuilderTest extends TestCase
 {

@@ -2,18 +2,19 @@
 
 namespace Adisaf\CsvEloquent;
 
+use Adisaf\CsvEloquent\Models\ModelCSV;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Pagination\CursorPaginator;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
-use Adisaf\CsvEloquent\Models\ModelCSV;
 
 class Builder
 {
     /**
      * Le modèle interrogé.
+     *
      * @var ModelCSV
      */
     protected $model;
@@ -21,7 +22,7 @@ class Builder
     /**
      * L'instance du client API CSV.
      *
-     * @var \App\Models\Csv\CsvClient
+     * @var \Adisaf\CsvEloquent\CsvClient
      */
     protected $csvClient;
 
@@ -752,15 +753,15 @@ class Builder
         $params = [];
 
         // Gère les filtres
-        if (!empty($this->wheres)) {
+        if (! empty($this->wheres)) {
             $params['filters'] = $this->buildFilters($this->wheres);
         }
 
         // Gère l'ordre
-        if (!empty($this->orders)) {
+        if (! empty($this->orders)) {
             $sortParts = [];
             foreach ($this->orders as $order) {
-                $sortParts[] = $order['column'] . ':' . $order['direction'];
+                $sortParts[] = $order['column'].':'.$order['direction'];
             }
             $params['sort'] = implode(',', $sortParts);
         }
@@ -803,7 +804,7 @@ class Builder
                     'value' => null,
                     'boolean' => 'and',
                 ];
-            } elseif (!$this->withTrashed) {
+            } elseif (! $this->withTrashed) {
                 $wheres[] = [
                     'column' => $this->model::DELETED_AT,
                     'operator' => 'is null',
@@ -842,7 +843,7 @@ class Builder
                     if (strpos($boolean, 'not') !== false) {
                         $filters[$column]['$not'] = [$operator => $value];
                     } elseif ($boolean === 'or') {
-                        if (!isset($filters['$or'])) {
+                        if (! isset($filters['$or'])) {
                             $filters['$or'] = [];
                         }
                         $filters['$or'][] = [$column => [$operator => $value]];
@@ -881,7 +882,7 @@ class Builder
     {
         $result = $this->first($columns);
 
-        if (!$result) {
+        if (! $result) {
             throw (new ModelNotFoundException)->setModel(
                 get_class($this->model)
             );
@@ -960,7 +961,7 @@ class Builder
         $collection = $this->model->newCollection($models);
 
         // Applique les clauses having si nécessaire
-        if (!empty($this->havings)) {
+        if (! empty($this->havings)) {
             $collection = $this->applyHavingClauses($collection);
         }
 

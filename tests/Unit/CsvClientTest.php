@@ -2,11 +2,11 @@
 
 namespace Adisaf\CsvEloquent\Tests\Unit;
 
-use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Http;
 use Adisaf\CsvEloquent\CsvClient;
 use Adisaf\CsvEloquent\Exceptions\CsvApiException;
 use Adisaf\CsvEloquent\Tests\TestCase;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Http;
 
 class CsvClientTest extends TestCase
 {

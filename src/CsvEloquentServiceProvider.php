@@ -2,6 +2,7 @@
 
 namespace Adisaf\CsvEloquent;
 
+use Illuminate\Contracts\Support\DeferrableProvider;
 use Illuminate\Support\ServiceProvider;
 
 class CsvEloquentServiceProvider extends ServiceProvider implements DeferrableProvider

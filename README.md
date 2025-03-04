@@ -1,5 +1,10 @@
 # Laravel CSV Eloquent
 
+[![Build Status](https://github.com/adisaf/laravel-csv-eloquent/workflows/Tests/badge.svg)](https://github.com/adisaf/laravel-csv-eloquent/actions)
+[![Latest Stable Version](https://poser.pugx.org/adisaf/laravel-csv-eloquent/v/stable.svg)](https://packagist.org/packages/adisaf/laravel-csv-eloquent)
+[![Total Downloads](https://poser.pugx.org/adisaf/laravel-csv-eloquent/downloads.svg)](https://packagist.org/packages/adisaf/laravel-csv-eloquent)
+[![License](https://poser.pugx.org/adisaf/laravel-csv-eloquent/license.svg)](https://packagist.org/packages/adisaf/laravel-csv-eloquent)
+
 Cette extension Laravel émule Eloquent ORM pour interagir avec des fichiers CSV volumineux via une API REST.
 
 ## Caractéristiques
@@ -14,41 +19,18 @@ Cette extension Laravel émule Eloquent ORM pour interagir avec des fichiers CSV
 - Mise en cache automatique des résultats
 - Compatible avec Laravel 8, 9, 10, 11 et 12
 
+## Prérequis
+
+- PHP 8.0 ou supérieur (PHP 8.1+ pour Laravel 10+, PHP 8.2+ pour Laravel 11+)
+- Laravel 8.x, 9.x, 10.x, 11.x ou 12.x
+- Une API REST pour les fichiers CSV compatibles (voir section API CSV ci-dessous)
+
 ## Installation
 
-### Via Composer (dépôt privé)
-
-Ajoutez la source dans votre fichier `composer.json` :
-
-```json
-"repositories": [
-{
-"type": "vcs",
-"url": "https://github.com/votre-organisation/laravel-csv-eloquent.git"
-}
-]
-```
-
-Puis installez le package :
+### Via Composer
 
 ```bash
-composer require votre-organisation/laravel-csv-eloquent
-```
-
-### Via un dépôt local
-
-Pour le développement local ou dans un environnement d'entreprise fermé :
-
-```json
-"repositories": [
-{
-"type": "path",
-"url": "../laravel-csv-eloquent",
-"options": {
-"symlink": true
-}
-}
-]
+composer require adisaf/laravel-csv-eloquent
 ```
 
 ## Configuration
@@ -153,6 +135,20 @@ class Payment extends Resource
 }
 ```
 
+## API CSV Requise
+
+Ce package nécessite une API REST pour les fichiers CSV avec les endpoints suivants :
+
+- `GET /api/` - Liste des fichiers CSV disponibles
+- `GET /api/{nom_fichier}` - Données avec filtrage et pagination
+- `GET /api/{nom_fichier}/schema` - Structure du fichier
+
+L'API doit supporter :
+
+- L'authentification Basic Auth
+- Le filtrage via des opérateurs (`$eq`, `$ne`, `$gt`, etc.)
+- La pagination et le tri
+
 ## Développement
 
 ### Tests
@@ -167,7 +163,21 @@ composer test
 composer lint
 ```
 
+### Analyse statique
+
+```bash
+composer stan
+```
+
+## Contribuer
+
+Veuillez consulter [CONTRIBUTING.md](CONTRIBUTING.md) pour les détails sur notre code de conduite et le processus de
+soumission des pull requests.
+
 ## Licence
 
-Ce logiciel est propriétaire et confidentiel. Toute reproduction, distribution ou utilisation non autorisée est
-strictement interdite.
+Ce package est la propriété de Fawaz Adisa et est distribué sous la licence [MIT](LICENSE).
+
+## Changelog
+
+Consultez [CHANGELOG.md](CHANGELOG.md) pour une liste des modifications récentes.

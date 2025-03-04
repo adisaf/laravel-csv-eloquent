@@ -2,11 +2,11 @@
 
 namespace Adisaf\CsvEloquent\Tests\Manual;
 
-use Dotenv\Dotenv;
-use Illuminate\Support\Collection;
 use Adisaf\CsvEloquent\CsvClient;
 use Adisaf\CsvEloquent\Tests\Manual\Models\Payment;
 use Adisaf\CsvEloquent\Tests\Manual\Models\Transfer;
+use Dotenv\Dotenv;
+use Illuminate\Support\Collection;
 use PHPUnit\Framework\TestCase;
 
 /**

@@ -2,6 +2,8 @@
 
 namespace Adisaf\CsvEloquent\Models;
 
+use Adisaf\CsvEloquent\Builder as CsvBuilder;
+use Adisaf\CsvEloquent\CsvClient;
 use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Contracts\Support\Jsonable;
 use Illuminate\Database\Eloquent\Concerns\GuardsAttributes;
@@ -16,8 +18,6 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Illuminate\Support\Traits\ForwardsCalls;
 use JsonSerializable;
-use Adisaf\CsvEloquent\Builder as CsvBuilder;
-use Adisaf\CsvEloquent\CsvClient;
 
 abstract class ModelCSV implements Arrayable, Jsonable, JsonSerializable
 {
@@ -39,7 +39,7 @@ abstract class ModelCSV implements Arrayable, Jsonable, JsonSerializable
     /**
      * L'instance du client API CSV.
      *
-     * @var \App\Models\Csv\CsvClient
+     * @var CsvClient
      */
     protected static $csvClient;
 
@@ -161,7 +161,7 @@ abstract class ModelCSV implements Arrayable, Jsonable, JsonSerializable
      */
     protected function bootIfNotBooted()
     {
-        if (!isset(static::$booted[static::class])) {
+        if (! isset(static::$booted[static::class])) {
             static::$booted[static::class] = true;
 
             static::bootTraits();
@@ -178,7 +178,7 @@ abstract class ModelCSV implements Arrayable, Jsonable, JsonSerializable
         $class = static::class;
 
         foreach (class_uses_recursive($class) as $trait) {
-            if (method_exists($class, $method = 'boot' . class_basename($trait))) {
+            if (method_exists($class, $method = 'boot'.class_basename($trait))) {
                 forward_static_call([$class, $method]);
             }
         }
@@ -217,7 +217,7 @@ abstract class ModelCSV implements Arrayable, Jsonable, JsonSerializable
      */
     public function getCsvFile()
     {
-        return $this->csvFile ?? Str::snake(Str::pluralStudly(class_basename($this))) . '.csv';
+        return $this->csvFile ?? Str::snake(Str::pluralStudly(class_basename($this))).'.csv';
     }
 
     /**
@@ -241,7 +241,7 @@ abstract class ModelCSV implements Arrayable, Jsonable, JsonSerializable
      */
     public static function getCsvClient()
     {
-        if (!static::$csvClient) {
+        if (! static::$csvClient) {
             static::$csvClient = new CsvClient;
         }
 
@@ -261,7 +261,7 @@ abstract class ModelCSV implements Arrayable, Jsonable, JsonSerializable
     /**
      * Obtient un nouveau constructeur de requête pour le modèle.
      *
-     * @return \App\Models\Csv\Builder
+     * @return CsvClient
      */
     public function newQuery()
     {
@@ -271,7 +271,7 @@ abstract class ModelCSV implements Arrayable, Jsonable, JsonSerializable
     /**
      * Obtient une nouvelle instance de constructeur de requête pour le fichier CSV.
      *
-     * @return \App\Models\Csv\Builder
+     * @return CsvClient
      */
     protected function newCsvBuilder()
     {
@@ -380,7 +380,7 @@ abstract class ModelCSV implements Arrayable, Jsonable, JsonSerializable
      */
     public function __isset($key)
     {
-        return !is_null($this->getAttribute($key));
+        return ! is_null($this->getAttribute($key));
     }
 
     /**
@@ -491,7 +491,7 @@ abstract class ModelCSV implements Arrayable, Jsonable, JsonSerializable
 
             return $response['data']['schema'] ?? [];
         } catch (\Exception $e) {
-            Log::error('Échec de la récupération du schéma pour le fichier CSV: ' . $this->getCsvFile(), [
+            Log::error('Échec de la récupération du schéma pour le fichier CSV: '.$this->getCsvFile(), [
                 'exception' => $e->getMessage(),
             ]);
 
@@ -575,7 +575,7 @@ abstract class ModelCSV implements Arrayable, Jsonable, JsonSerializable
             if (count($result) === count(array_unique($id))) {
                 return $result;
             }
-        } elseif (!is_null($result)) {
+        } elseif (! is_null($result)) {
             return $result;
         }
 
@@ -594,7 +594,7 @@ abstract class ModelCSV implements Arrayable, Jsonable, JsonSerializable
      */
     public function newInstance($attributes = [], $exists = false)
     {
-        $model = new static((array)$attributes);
+        $model = new static((array) $attributes);
 
         $model->exists = $exists;
 
@@ -604,7 +604,7 @@ abstract class ModelCSV implements Arrayable, Jsonable, JsonSerializable
     /**
      * Commence à interroger le modèle.
      *
-     * @return \App\Models\Csv\Builder
+     * @return CsvClient
      */
     public static function query()
     {

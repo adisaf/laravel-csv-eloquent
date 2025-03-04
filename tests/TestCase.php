@@ -2,10 +2,10 @@
 
 namespace Adisaf\CsvEloquent\Tests;
 
-use Mockery;
-use Orchestra\Testbench\TestCase as BaseTestCase;
 use Adisaf\CsvEloquent\CsvClient;
 use Adisaf\CsvEloquent\CsvEloquentServiceProvider;
+use Mockery;
+use Orchestra\Testbench\TestCase as BaseTestCase;
 
 abstract class TestCase extends BaseTestCase
 {
