@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Concerns\GuardsAttributes;
 use Illuminate\Database\Eloquent\Concerns\HasAttributes;
 use Illuminate\Database\Eloquent\Concerns\HasEvents;
 use Illuminate\Database\Eloquent\Concerns\HasGlobalScopes;
+use Illuminate\Database\Eloquent\Concerns\HasRelationships;
 use Illuminate\Database\Eloquent\Concerns\HasTimestamps;
 use Illuminate\Database\Eloquent\Concerns\HidesAttributes;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
@@ -20,15 +21,10 @@ use Illuminate\Support\Str;
 use Illuminate\Support\Traits\ForwardsCalls;
 use JsonSerializable;
 
-abstract class ModelCSV implements Arrayable, Jsonable, JsonSerializable
+abstract class ModelCSV extends \Illuminate\Database\Eloquent\Model
 {
-    use ForwardsCalls;
-    use GuardsAttributes;
-    use HasAttributes;
-    use HasEvents;
-    use HasGlobalScopes;
-    use HasTimestamps;
-    use HidesAttributes;
+    // Nous héritons déjà de tous ces traits via Model
+    // Nous pouvons les retirer car ils sont déjà inclus
 
     /**
      * Les scopes globaux enregistrés pour le modèle.
@@ -155,6 +151,27 @@ abstract class ModelCSV implements Arrayable, Jsonable, JsonSerializable
      * @var bool
      */
     public $exists = false;
+
+    /**
+     * Les relations chargées pour le modèle.
+     *
+     * @var array
+     */
+    protected $relations = [];
+
+    /**
+     * Les relations qui doivent être chargées en eager loading.
+     *
+     * @var array
+     */
+    protected $with = [];
+
+    /**
+     * Indique si l'entité est en train d'être chargée avec eager loading.
+     *
+     * @var bool
+     */
+    protected $eagerLoading = false;
 
     /**
      * Obtient le type de la clé primaire.
@@ -876,5 +893,111 @@ abstract class ModelCSV implements Arrayable, Jsonable, JsonSerializable
     public function getTable()
     {
         return $this->getCsvFile();
+    }
+
+    /**
+     * Commence une requête pour le modèle avec eager loading.
+     *
+     * @param array|string $relations
+     *
+     * @return \Adisaf\CsvEloquent\Builder
+     */
+    public static function with($relations)
+    {
+        $instance = new static;
+
+        if (is_string($relations)) {
+            $relations = func_get_args();
+        }
+
+        $query = $instance->newQuery();
+
+        // Nous stockons les relations pour la compatibilité, même si elles ne font rien
+        // dans notre implémentation CSV actuelle
+        $instance->with = array_merge($instance->with, $relations);
+
+        return $query;
+    }
+
+    /**
+     * Récupère les relations chargées pour le modèle.
+     *
+     * @return array
+     */
+    public function getRelations()
+    {
+        return $this->relations;
+    }
+
+    /**
+     * Obtient une relation spécifique.
+     *
+     * @param string $relation
+     *
+     * @return mixed
+     */
+    public function getRelation($relation)
+    {
+        return $this->relations[$relation] ?? null;
+    }
+
+    /**
+     * Définit les relations qui doivent être eager loaded.
+     *
+     * @return $this
+     */
+    public function setRelations(array $relations)
+    {
+        $this->relations = $relations;
+
+        return $this;
+    }
+
+    /**
+     * Ajoute une relation dans la liste des relations du modèle.
+     *
+     * @param string $relation
+     * @param mixed $value
+     *
+     * @return $this
+     */
+    public function setRelation($relation, $value)
+    {
+        $this->relations[$relation] = $value;
+
+        return $this;
+    }
+
+    /**
+     * Détermine si une relation est chargée.
+     *
+     * @param string $key
+     *
+     * @return bool
+     */
+    public function relationLoaded($key)
+    {
+        return array_key_exists($key, $this->relations);
+    }
+
+    /**
+     * Obtient les noms de toutes les relations définies sur le modèle.
+     *
+     * @return array
+     */
+    public function getRelationNames()
+    {
+        // Dans notre contexte, nous n'avons pas encore implémenté de vraies relations
+        return [];
+    }
+
+    /**
+     * Obtient les relations à charger en eager loading.
+     *
+     * @return array
+     */
+    public function getEagerLoads()
+    {
+        return $this->with;
     }
 }

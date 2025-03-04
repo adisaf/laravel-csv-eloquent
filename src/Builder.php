@@ -4,13 +4,16 @@ namespace Adisaf\CsvEloquent;
 
 use Adisaf\CsvEloquent\Models\ModelCSV;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Database\Query\Builder as QueryBuilder;
+use Illuminate\Database\Query\Grammars\Grammar;
+use Illuminate\Database\Query\Processors\Processor;
 use Illuminate\Pagination\CursorPaginator;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
 
-class Builder implements \Illuminate\Contracts\Database\Query\Builder
+class Builder extends \Illuminate\Database\Eloquent\Builder
 {
     /**
      * Le modèle interrogé.
@@ -90,24 +93,184 @@ class Builder implements \Illuminate\Contracts\Database\Query\Builder
     protected $onlyTrashed = false;
 
     /**
-     * Crée une nouvelle instance de constructeur de requête.
+     * La requête de base utilisée par ce constructeur.
      *
+     * @var \Illuminate\Database\Query\Builder
+     */
+    protected $query;
+
+    /**
+     * Crée une nouvelle instance de constructeur de requête.
      *
      * @return void
      */
     public function __construct(CsvClient $csvClient)
     {
         $this->csvClient = $csvClient;
+        // Créer un objet query minimal pour la compatibilité avec Eloquent Builder
+        $connection = $this->getQueryConnection();
+        // Utiliser les méthodes de connexion pour obtenir grammar et processor
+        $grammar = $connection->getQueryGrammar();
+        $processor = $connection->getPostProcessor();
+
+        $this->query = new \Illuminate\Database\Query\Builder(
+            $connection, $grammar, $processor
+        );
+
+        parent::__construct($this->query);
+    }
+
+    /**
+     * Crée une connexion fictive pour la compatibilité avec Eloquent
+     *
+     * @return object
+     */
+    protected function getQueryConnection()
+    {
+        // Créer une connexion fictive qui implémente ConnectionInterface
+        return new class implements \Illuminate\Database\ConnectionInterface
+        {
+            // Méthode nécessaire pour Grammar
+            public function getQueryGrammar()
+            {
+                return new class($this) extends Grammar
+                {
+                    public function __construct($connection)
+                    {
+                        $this->connection = $connection;
+                    }
+                };
+            }
+
+            // Méthode nécessaire pour Processor
+            public function getPostProcessor()
+            {
+                return new Processor;
+            }
+
+            // Autres méthodes requises par l'interface
+            public function table($table, $as = null)
+            {
+                return new QueryBuilder($this);
+            }
+
+            public function raw($value)
+            {
+                return $value;
+            }
+
+            public function selectOne($query, $bindings = [], $useReadPdo = true)
+            {
+                return null;
+            }
+
+            public function select($query, $bindings = [], $useReadPdo = true)
+            {
+                return [];
+            }
+
+            public function cursor($query, $bindings = [], $useReadPdo = true)
+            {
+                yield [];
+            }
+
+            public function insert($query, $bindings = [])
+            {
+                return true;
+            }
+
+            public function update($query, $bindings = [])
+            {
+                return 0;
+            }
+
+            public function delete($query, $bindings = [])
+            {
+                return 0;
+            }
+
+            public function statement($query, $bindings = [])
+            {
+                return true;
+            }
+
+            public function affectingStatement($query, $bindings = [])
+            {
+                return 0;
+            }
+
+            public function unprepared($query)
+            {
+                return true;
+            }
+
+            public function prepareBindings(array $bindings)
+            {
+                return $bindings;
+            }
+
+            public function transaction(\Closure $callback, $attempts = 1)
+            {
+                return $callback();
+            }
+
+            public function beginTransaction()
+            {
+                return true;
+            }
+
+            public function commit()
+            {
+                return true;
+            }
+
+            public function rollBack()
+            {
+                return true;
+            }
+
+            public function transactionLevel()
+            {
+                return 0;
+            }
+
+            public function pretend(\Closure $callback)
+            {
+                return [];
+            }
+
+            public function getDatabaseName()
+            {
+                return 'csv';
+            }
+
+            // Méthode utilitaire
+            public function query()
+            {
+                return new QueryBuilder($this);
+            }
+
+            public function scalar($query, $bindings = [], $useReadPdo = true)
+            {
+                // TODO: Implement scalar() method.
+            }
+        };
     }
 
     /**
      * Définit l'instance du modèle pour la requête.
      *
+     * @param \Illuminate\Database\Eloquent\Model $model
+     *
      * @return $this
      */
-    public function setModel(ModelCSV $model)
+    public function setModel(\Illuminate\Database\Eloquent\Model $model)
     {
         $this->model = $model;
+
+        // Il faut aussi définir le modèle au niveau de la requête parente
+        // pour que les méthodes héritées fonctionnent correctement
+        parent::setModel($model);
 
         return $this;
     }
@@ -188,7 +351,16 @@ class Builder implements \Illuminate\Contracts\Database\Query\Builder
         return $this;
     }
 
-    protected function addArrayOfWheres($column, $boolean = 'and', $method = 'where')
+    /**
+     * Ajoute un tableau de conditions where à la requête.
+     *
+     * @param array $column
+     * @param string $boolean
+     * @param string $method
+     *
+     * @return $this
+     */
+    protected function addArrayOfWheres($column, $boolean, $method = 'where')
     {
         foreach ($column as $key => $value) {
             $this->$method($key, '=', $value, $boolean);
@@ -755,15 +927,15 @@ class Builder implements \Illuminate\Contracts\Database\Query\Builder
         $params = [];
 
         // Gère les filtres
-        if (!empty($this->wheres)) {
+        if (! empty($this->wheres)) {
             $params['filters'] = $this->buildFilters($this->wheres);
         }
 
         // Gère l'ordre
-        if (!empty($this->orders)) {
+        if (! empty($this->orders)) {
             $sortParts = [];
             foreach ($this->orders as $order) {
-                $sortParts[] = $order['column'] . ':' . $order['direction'];
+                $sortParts[] = $order['column'].':'.$order['direction'];
             }
             $params['sort'] = implode(',', $sortParts);
         }
@@ -806,7 +978,7 @@ class Builder implements \Illuminate\Contracts\Database\Query\Builder
                     'value' => null,
                     'boolean' => 'and',
                 ];
-            } elseif (!$this->withTrashed) {
+            } elseif (! $this->withTrashed) {
                 $wheres[] = [
                     'column' => $this->model::DELETED_AT,
                     'operator' => 'is null',
@@ -845,7 +1017,7 @@ class Builder implements \Illuminate\Contracts\Database\Query\Builder
                     if (strpos($boolean, 'not') !== false) {
                         $filters[$column]['$not'] = [$operator => $value];
                     } elseif ($boolean === 'or') {
-                        if (!isset($filters['$or'])) {
+                        if (! isset($filters['$or'])) {
                             $filters['$or'] = [];
                         }
                         $filters['$or'][] = [$column => [$operator => $value]];
@@ -884,7 +1056,7 @@ class Builder implements \Illuminate\Contracts\Database\Query\Builder
     {
         $result = $this->first($columns);
 
-        if (!$result) {
+        if (! $result) {
             throw (new ModelNotFoundException)->setModel(
                 get_class($this->model)
             );
@@ -934,9 +1106,9 @@ class Builder implements \Illuminate\Contracts\Database\Query\Builder
 
             // Debug
             if (config('csv-eloquent.debug', false) && app()->bound('log')) {
-                Log::debug("Builder::get - Nombre d'enregistrements récupérés: " . count($records));
+                Log::debug("Builder::get - Nombre d'enregistrements récupérés: ".count($records));
             }
-            if (!empty($records)) {
+            if (! empty($records)) {
                 if (config('csv-eloquent.debug', false) && app()->bound('log')) {
                     Log::debug("Builder::get - Premier enregistrement:\n");
                 }
@@ -948,7 +1120,7 @@ class Builder implements \Illuminate\Contracts\Database\Query\Builder
             return $this->processRecords($records, $columns);
         } catch (\Exception $e) {
             if (config('csv-eloquent.debug', false) && app()->bound('log')) {
-                Log::debug('ERREUR dans Builder::get: ' . $e->getMessage());
+                Log::debug('ERREUR dans Builder::get: '.$e->getMessage());
             }
 
             return new Collection;
@@ -966,7 +1138,7 @@ class Builder implements \Illuminate\Contracts\Database\Query\Builder
     protected function processRecords(array $records, array $columns = ['*'])
     {
         if (config('csv-eloquent.debug', false) && app()->bound('log')) {
-            Log::debug('processRecords - Début avec ' . count($records) . " enregistrements\n");
+            Log::debug('processRecords - Début avec '.count($records)." enregistrements\n");
         }
 
         $models = [];
@@ -980,7 +1152,7 @@ class Builder implements \Illuminate\Contracts\Database\Query\Builder
 
             try {
                 // Vérifier que record est bien un tableau
-                if (!is_array($record)) {
+                if (! is_array($record)) {
                     if (config('csv-eloquent.debug', false) && app()->bound('log')) {
                         Log::debug("ATTENTION: L'enregistrement #$recordCount n'est pas un tableau\n");
                     }
@@ -1002,7 +1174,7 @@ class Builder implements \Illuminate\Contracts\Database\Query\Builder
 
                     if ($index === 0) {
                         if (config('csv-eloquent.debug', false) && app()->bound('log')) {
-                            Log::debug("Attribution: $field => $attribute = " . (is_string($value) ? $value : gettype($value)));
+                            Log::debug("Attribution: $field => $attribute = ".(is_string($value) ? $value : gettype($value)));
                         }
                     }
 
@@ -1011,7 +1183,7 @@ class Builder implements \Illuminate\Contracts\Database\Query\Builder
                         $model->fillAttribute($attribute, $value);
                     } catch (\Exception $e) {
                         if (config('csv-eloquent.debug', false) && app()->bound('log')) {
-                            Log::debug("ERREUR lors de l'attribution de {$attribute}: " . $e->getMessage());
+                            Log::debug("ERREUR lors de l'attribution de {$attribute}: ".$e->getMessage());
                         }
                     }
                 }
@@ -1019,27 +1191,27 @@ class Builder implements \Illuminate\Contracts\Database\Query\Builder
                 $models[] = $model;
             } catch (\Exception $e) {
                 if (config('csv-eloquent.debug', false) && app()->bound('log')) {
-                    Log::debug("EXCEPTION lors du traitement de l'enregistrement #{$recordCount}: " . $e->getMessage());
+                    Log::debug("EXCEPTION lors du traitement de l'enregistrement #{$recordCount}: ".$e->getMessage());
                 }
             }
         }
 
         if (config('csv-eloquent.debug', false) && app()->bound('log')) {
-            Log::debug('processRecords - Modèles créés: ' . count($models));
+            Log::debug('processRecords - Modèles créés: '.count($models));
         }
 
         // Vérifier le premier modèle
-        if (!empty($models)) {
+        if (! empty($models)) {
             if (config('csv-eloquent.debug', false) && app()->bound('log')) {
-                Log::debug('Premier modèle: ' . get_class($models[0]));
+                Log::debug('Premier modèle: '.get_class($models[0]));
             }
 
             $firstModel = $models[0];
             if (config('csv-eloquent.debug', false) && app()->bound('log')) {
-                Log::debug('ID du premier modèle: ' . $firstModel->getKey());
+                Log::debug('ID du premier modèle: '.$firstModel->getKey());
             }
             if (config('csv-eloquent.debug', false) && app()->bound('log')) {
-                Log::debug('Status du premier modèle: ' . $firstModel->getAttribute('status'));
+                Log::debug('Status du premier modèle: '.$firstModel->getAttribute('status'));
             }
         }
 
@@ -1047,11 +1219,11 @@ class Builder implements \Illuminate\Contracts\Database\Query\Builder
         $collection = $this->model->newCollection($models);
 
         if (config('csv-eloquent.debug', false) && app()->bound('log')) {
-            Log::debug('Collection créée avec ' . $collection->count() . " éléments\n");
+            Log::debug('Collection créée avec '.$collection->count()." éléments\n");
         }
 
         // Applique les clauses having si nécessaire
-        if (!empty($this->havings)) {
+        if (! empty($this->havings)) {
             $collection = $this->applyHavingClauses($collection);
         }
 
@@ -1261,11 +1433,15 @@ class Builder implements \Illuminate\Contracts\Database\Query\Builder
     /**
      * Permet d'exécuter une fonction sur le builder et de retourner le builder.
      *
+     * @param mixed $callback
+     *
      * @return $this
      */
-    public function tap(callable $callback)
+    public function tap($callback)
     {
-        $callback($this);
+        if (is_callable($callback)) {
+            $callback($this);
+        }
 
         return $this;
     }
@@ -1277,7 +1453,7 @@ class Builder implements \Illuminate\Contracts\Database\Query\Builder
      *
      * @return $this
      */
-    public function when($value, ?callable $callback = null, ?callable $default = null)
+    public function when($value = null, ?callable $callback = null, ?callable $default = null)
     {
         if ($value) {
             return $callback($this, $value) ?: $this;
@@ -1295,9 +1471,9 @@ class Builder implements \Illuminate\Contracts\Database\Query\Builder
      *
      * @return $this
      */
-    public function unless($value, callable $callback, ?callable $default = null)
+    public function unless($value = null, ?callable $callback = null, ?callable $default = null)
     {
-        return $this->when(!$value, $callback, $default);
+        return $this->when(! $value, $callback, $default);
     }
 
     /**
@@ -1317,7 +1493,7 @@ class Builder implements \Illuminate\Contracts\Database\Query\Builder
      */
     public function doesntExist()
     {
-        return !$this->exists();
+        return ! $this->exists();
     }
 
     /**
@@ -1606,7 +1782,46 @@ class Builder implements \Illuminate\Contracts\Database\Query\Builder
      */
     public function distinct($column = true)
     {
+        // Transmission à la classe parente pour compatibilité
+        parent::distinct($column);
+
         // Pour l'implémentation CSV, nous le gérerons au moment de l'exécution de la requête
+        return $this;
+    }
+
+    /**
+     * Applique la contrainte de relation d'appartenance "morph to" à la requête.
+     *
+     * @param string $relation
+     * @param string $type
+     * @param string $id
+     *
+     * @return $this
+     */
+    public function whereMorphedTo($relation, $model, $ownerKey = null)
+    {
+        // Transmet à la classe parent pour compatibilité
+        parent::whereMorphedTo($relation, $model, $ownerKey);
+
+        // Pas d'implémentation réelle pour CSV
+        return $this;
+    }
+
+    /**
+     * Applique une contrainte de disponibilité d'un type de modèle.
+     *
+     * @param string $type
+     * @param array $ids
+     * @param string $boolean
+     *
+     * @return $this
+     */
+    public function whereModelHas($type, $ids = [], $boolean = 'and')
+    {
+        // Transmet à la classe parent pour compatibilité
+        parent::whereModelHas($type, $ids, $boolean);
+
+        // Pas d'implémentation réelle pour CSV
         return $this;
     }
 
@@ -1801,7 +2016,6 @@ class Builder implements \Illuminate\Contracts\Database\Query\Builder
     /**
      * Clone la requête sans les composants spécifiés.
      *
-     * @param array $properties
      *
      * @return static
      */
@@ -1814,24 +2028,31 @@ class Builder implements \Illuminate\Contracts\Database\Query\Builder
             switch ($property) {
                 case 'wheres':
                     $clone->wheres = [];
+
                     break;
                 case 'orders':
                     $clone->orders = [];
+
                     break;
                 case 'limit':
                     $clone->limit = null;
+
                     break;
                 case 'offset':
                     $clone->offset = null;
+
                     break;
                 case 'columns':
                     $clone->columns = ['*'];
+
                     break;
                 case 'groups':
                     $clone->groups = [];
+
                     break;
                 case 'havings':
                     $clone->havings = [];
+
                     break;
             }
         }
@@ -1842,7 +2063,6 @@ class Builder implements \Illuminate\Contracts\Database\Query\Builder
     /**
      * Clone la requête sans les liaisons spécifiées.
      *
-     * @param array $except
      *
      * @return static
      */
@@ -1852,11 +2072,12 @@ class Builder implements \Illuminate\Contracts\Database\Query\Builder
         // comme dans SQL, mais cette méthode est requise par l'interface
         return clone $this;
     }
-    
+
     /**
      * Ordonne les résultats par date de création par ordre décroissant.
      *
      * @param string $column
+     *
      * @return $this
      */
     public function latest($column = 'created_at')
@@ -1868,29 +2089,31 @@ class Builder implements \Illuminate\Contracts\Database\Query\Builder
      * Ordonne les résultats par date de création par ordre croissant.
      *
      * @param string $column
+     *
      * @return $this
      */
     public function oldest($column = 'created_at')
     {
         return $this->orderBy($column, 'asc');
     }
-    
+
     /**
      * Pagine les résultats en utilisant un ID comme point de référence.
      *
      * @param int $perPage
      * @param int|null $lastId
      * @param string $column
+     *
      * @return $this
      */
     public function forPageBeforeId($perPage = 15, $lastId = 0, $column = 'id')
     {
         $this->limit($perPage);
-        
+
         if ($lastId !== null && $lastId > 0) {
             $this->where($column, '<', $lastId);
         }
-        
+
         return $this->orderBy($column, 'desc');
     }
 
@@ -1900,67 +2123,69 @@ class Builder implements \Illuminate\Contracts\Database\Query\Builder
      * @param int $perPage
      * @param int|null $lastId
      * @param string $column
+     *
      * @return $this
      */
     public function forPageAfterId($perPage = 15, $lastId = 0, $column = 'id')
     {
         $this->limit($perPage);
-        
+
         if ($lastId !== null && $lastId > 0) {
             $this->where($column, '>', $lastId);
         }
-        
+
         return $this->orderBy($column, 'asc');
     }
-    
+
     /**
      * Récupère une valeur unique d'un enregistrement.
      *
      * @param string $column
+     *
      * @return mixed
      */
     public function value($column)
     {
         $result = $this->first([$column]);
-        
+
         return $result ? $result->{$column} : null;
     }
-    
+
     /**
      * Traite les résultats de la requête en morceaux.
      *
      * @param int $count
-     * @param callable $callback
+     *
      * @return bool
      */
     public function chunk($count, callable $callback)
     {
         $page = 1;
-        
+
         do {
             $results = $this->forPage($page, $count)->get();
-            
+
             $countResults = $results->count();
-            
+
             if ($countResults == 0) {
                 break;
             }
-            
+
             if ($callback($results, $page) === false) {
                 return false;
             }
-            
+
             $page++;
         } while ($countResults == $count);
-        
+
         return true;
     }
-    
+
     /**
      * Exécute un callback sur chaque élément des résultats.
      *
-     * @param callable $callback
      * @param int $count
+     *
      * @return bool
      */
     public function each(callable $callback, $count = 1000)
@@ -1971,33 +2196,273 @@ class Builder implements \Illuminate\Contracts\Database\Query\Builder
                     return false;
                 }
             }
-            
+
             return true;
         });
     }
-    
+
     /**
      * Exécute la requête en utilisant un générateur pour économiser la mémoire.
      *
      * @param int $chunkSize
+     *
      * @return \Generator
      */
     public function lazy($chunkSize = 1000)
     {
         $page = 1;
-        
+
         do {
             $clone = clone $this;
-            
+
             $results = $clone->forPage($page++, $chunkSize)->get();
-            
+
             if ($results->isEmpty()) {
                 break;
             }
-            
+
             foreach ($results as $result) {
                 yield $result;
             }
         } while (true);
     }
+
+    /**
+     * Obtient le nom de la colonne de clé primaire qualifiée.
+     *
+     * @return string
+     */
+    public function getQualifiedKeyName()
+    {
+        if ($this->model) {
+            return $this->model->getKeyName();
+        }
+
+        return 'id';
+    }
+
+    /**
+     * Ajoute une relation à charger avec eager loading.
+     *
+     * @param mixed $relations
+     * @param \Closure|string|null $callback
+     *
+     * @return $this
+     */
+    public function with($relations, $callback = null)
+    {
+        // Dans notre contexte CSV, nous déléguons à la classe parente pour compatibilité
+        parent::with($relations, $callback);
+
+        // Mais nous ne faisons rien de spécial car les relations ne sont pas implémentées
+        return $this;
+    }
+
+    /**
+     * Ajoute une relation à charger sans les contraintes par défaut.
+     *
+     * @param mixed $scope
+     *
+     * @return $this
+     */
+    public function withoutGlobalScope($scope)
+    {
+        parent::withoutGlobalScope($scope);
+
+        return $this;
+    }
+
+    /**
+     * Ajoute plusieurs relations à charger sans les contraintes par défaut.
+     *
+     * @return $this
+     */
+    public function withoutGlobalScopes(?array $scopes = null)
+    {
+        parent::withoutGlobalScopes($scopes);
+
+        return $this;
+    }
+
+    /**
+     * Obtient tous les scopes globaux supprimés de la requête.
+     *
+     * @return array
+     */
+    public function removedScopes()
+    {
+        return parent::removedScopes();
+    }
+
+    /**
+     * Ajoute une sous-requête à la requête principale.
+     *
+     * @param \Closure|\Illuminate\Database\Query\Builder|string $query
+     * @param string $as
+     *
+     * @return $this
+     */
+    public function withSubquery($query, $as)
+    {
+        // Non supporté dans notre contexte CSV
+        return $this;
+    }
+
+    /**
+     * Crée une chaîne de requête à partir de la requête en cours.
+     *
+     * @return string
+     */
+    public function toSql()
+    {
+        // Dans notre contexte CSV, nous n'avons pas de SQL
+        // Mais nous pouvons renvoyer une représentation de la requête pour le débogage
+
+        $sql = 'SELECT '.implode(', ', $this->columns).' FROM '.($this->model ? $this->model->getTable() : 'unknown');
+
+        if (! empty($this->wheres)) {
+            $sql .= ' WHERE ';
+            $whereConditions = [];
+
+            foreach ($this->wheres as $where) {
+                if (isset($where['column']) && isset($where['operator'])) {
+                    $whereConditions[] = $where['column'].' '.$where['operator'].' '.
+                        (is_null($where['value']) ? 'NULL' : (is_array($where['value']) ? '['.implode(',', $where['value']).']' : $where['value']));
+                }
+            }
+
+            $sql .= implode(' AND ', $whereConditions);
+        }
+
+        if (! empty($this->orders)) {
+            $sql .= ' ORDER BY ';
+            $orderBy = [];
+
+            foreach ($this->orders as $order) {
+                $orderBy[] = $order['column'].' '.strtoupper($order['direction']);
+            }
+
+            $sql .= implode(', ', $orderBy);
+        }
+
+        if ($this->limit !== null) {
+            $sql .= ' LIMIT '.$this->limit;
+
+            if ($this->offset !== null) {
+                $sql .= ' OFFSET '.$this->offset;
+            }
+        }
+
+        return $sql;
+    }
+
+    /**
+     * Récupère des modèles filtrés par une relation.
+     *
+     * @param string $relation
+     * @param \Closure|string|array|null $column
+     * @param mixed $operator
+     * @param mixed $value
+     *
+     * @return $this
+     */
+    public function whereHas($relation, $callback = null, $operator = '>=', $count = 1)
+    {
+        // Appel à la méthode parente pour compatibilité
+        parent::whereHas($relation, $callback, $operator, $count);
+
+        // Dans notre contexte CSV, les relations ne sont pas gérées
+        // Cette méthode reste donc un placeholder pour compatibilité
+        return $this;
+    }
+
+    /**
+     * Applique un callback si une condition sur une relation a été ajoutée.
+     *
+     * @param string|array $relations
+     * @param string|null $operator
+     * @param int|null $count
+     * @param string $boolean
+     * @param \Closure|null $callback
+     *
+     * @return $this
+     */
+    public function hasNested($relations, $operator = '>=', $count = 1, $boolean = 'and', $callback = null)
+    {
+        // Appel à la méthode parente pour compatibilité
+        parent::hasNested($relations, $operator, $count, $boolean, $callback);
+
+        // Pas d'implémentation réelle pour CSV
+        return $this;
+    }
+
+    /**
+     * Ajoute une jointure de relation à la requête.
+     *
+     * @param string $relation
+     * @param \Closure|string|null $callback
+     * @param string $type
+     * @param bool $where
+     *
+     * @return $this
+     */
+    public function joinRelation($relation, $callback = null, $type = 'inner', $where = false)
+    {
+        // Appel à la méthode parente pour compatibilité
+        parent::joinRelation($relation, $callback, $type, $where);
+
+        // Pas d'implémentation réelle pour CSV
+        return $this;
+    }
+
+    /*
+     *
+    public function where($column, $operator = null, $value = null, $boolean = 'and')
+    {
+        // Si c'est une fonction de callback spéciale pour les méthodes Eloquent
+        if ($column instanceof \Closure && $operator === null) {
+            return parent::where($column, $operator, $value, $boolean);
+        }
+
+        // Sinon, on utilise notre propre implémentation
+        // Si la colonne est un tableau, on suppose qu'il s'agit d'un tableau de paires clé-valeur
+        if (is_array($column)) {
+            return $this->addArrayOfWheres($column, $boolean);
+        }
+
+        // Si la colonne est en fait une Closure, nous supposerons que le développeur veut
+        // commencer une instruction where imbriquée qui est enveloppée entre parenthèses.
+        if ($column instanceof \Closure) {
+            return $this->whereNested($column, $boolean);
+        }
+
+        // Si aucun opérateur n'est donné, nous le déterminerons en fonction de la valeur
+        if (func_num_args() === 2) {
+            [$value, $operator] = [$operator, '='];
+        }
+
+        // Si la valeur est nulle et l'opérateur est égal, nous le convertirons en is null
+        if (is_null($value) && $operator === '=') {
+            $operator = 'is null';
+        }
+
+        // Si la valeur est nulle et l'opérateur n'est pas égal, nous le convertirons en is not null
+        if (is_null($value) && $operator === '!=') {
+            $operator = 'is not null';
+        }
+
+        // Mapper les opérateurs Laravel aux opérateurs API
+        $mappedOperator = $this->mapOperator($operator);
+
+        // Nous ajouterons la clause where au tableau de wheres
+        $this->wheres[] = [
+            'column' => $this->mapColumnToField($column),
+            'operator' => $mappedOperator,
+            'value' => $value,
+            'boolean' => $boolean,
+        ];
+
+        return $this;
+    }
+     */
 }
