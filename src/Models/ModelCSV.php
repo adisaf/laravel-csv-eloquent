@@ -785,7 +785,7 @@ abstract class ModelCSV implements Arrayable, Jsonable, JsonSerializable
             return collect();
         }
 
-        return static::query()->whereIn((new static)->getKeyName(), $ids)->get($columns);
+        return static::query()->whereIn((new static)->getKeyName(), $ids, 'and', false)->get($columns);
     }
 
     /**
