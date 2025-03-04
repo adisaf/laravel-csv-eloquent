@@ -82,6 +82,17 @@ class CsvClient
      */
     public function getData($file, array $params = [])
     {
+        // Vérification du nom de fichier
+        $originalFile = $file;
+
+        // Assurez-vous que le nom du fichier ne contient pas déjà l'extension .csv
+        if (substr($file, -4) !== '.csv') {
+            $file .= '.csv';
+        }
+
+        // Débogage du nom de fichier
+        echo "Nom de fichier original: {$originalFile}, Utilisé pour l'API: {$file}\n";
+
         $cacheKey = 'csv_api_data_' . $file . '_' . md5(json_encode($params));
 
         if (app()->bound('cache')) {
@@ -105,6 +116,11 @@ class CsvClient
      */
     public function getSchema($file)
     {
+        // Assurez-vous que le nom du fichier ne contient pas déjà l'extension .csv
+        if (substr($file, -4) !== '.csv') {
+            $file .= '.csv';
+        }
+
         $cacheKey = 'csv_api_schema_' . $file;
 
         if (app()->bound('cache')) {
@@ -130,7 +146,9 @@ class CsvClient
     protected function makeRequest($method, $endpoint, array $params = [])
     {
         try {
-            // Ne pas modifier l'endpoint, utilisez-le tel quel
+            // Assurer que l'endpoint est correctement formaté
+            echo "Endpoint API: {$endpoint}\n";
+
             $url = rtrim($this->baseUrl, '/') . $endpoint;
 
             $response = Http::withBasicAuth($this->username, $this->password)
@@ -138,14 +156,8 @@ class CsvClient
                 ->retry(3, 1000)
                 ->$method($url, $params);
 
-            // Débogage de la réponse, à supprimer en production
-            if (config('csv-eloquent.debug', false)) {
-                Log::debug('CSV API Response', [
-                    'url' => $url,
-                    'status' => $response->status(),
-                    'data' => $response->json()
-                ]);
-            }
+            // Débogage de la réponse
+            echo "Statut API: " . $response->status() . "\n";
 
             if ($response->failed()) {
                 if (app()->bound('log')) {
@@ -154,8 +166,6 @@ class CsvClient
                         'status' => $response->status(),
                         'response' => $response->json() ?? $response->body(),
                     ]);
-                } else {
-                    error_log('Échec de la requête API CSV: ' . $response->status() . ' pour ' . $url);
                 }
 
                 throw new CsvApiException(
@@ -172,8 +182,6 @@ class CsvClient
                         'exception' => $e->getMessage(),
                         'endpoint' => $endpoint,
                     ]);
-                } else {
-                    error_log('Exception lors de la requête API CSV: ' . $e->getMessage() . ' pour ' . $endpoint);
                 }
 
                 throw new CsvApiException(

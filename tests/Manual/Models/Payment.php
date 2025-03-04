@@ -6,7 +6,6 @@ use Adisaf\CsvEloquent\Models\ModelCSV;
 use Adisaf\CsvEloquent\Traits\HasCsvSchema;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\Log;
 
 class Payment extends ModelCSV
 {
@@ -18,7 +17,7 @@ class Payment extends ModelCSV
      *
      * @var string
      */
-    protected $csvFile = 'payments';  // Assurez-vous que ce nom correspond à celui utilisé dans l'API
+    protected $csvFile = 'payments.csv';  // Maintenant avec l'extension .csv
 
     /**
      * Les attributs qui doivent être convertis.
@@ -51,8 +50,6 @@ class Payment extends ModelCSV
      */
     protected $columnMapping = [
         // Si vos noms de colonnes diffèrent entre l'API et le modèle, définissez-les ici
-        // 'amount' => 'montant',
-        // 'status' => 'statut',
     ];
 
     /**
@@ -78,25 +75,5 @@ class Payment extends ModelCSV
         }
 
         return Transfer::where('merchant_transaction_id', $this->merchant_transaction_id)->get();
-    }
-
-    /**
-     * Surcharge pour le débogage
-     *
-     * @param array $attributes
-     * @param bool $exists
-     * @return static
-     */
-    public function newInstance($attributes = [], $exists = false)
-    {
-        if (config('csv-eloquent.debug', false) && app()->bound('log')) {
-            Log::debug('Payment::newInstance called', [
-                'attributesCount' => count($attributes),
-                'exists' => $exists,
-                'csvFile' => $this->getCsvFile()
-            ]);
-        }
-
-        return parent::newInstance($attributes, $exists);
     }
 }

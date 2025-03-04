@@ -617,6 +617,18 @@ class Builder
         return $this;
     }
 
+
+    /**
+     * Alias pour limit(), pour compatibilité Eloquent.
+     *
+     * @param int $value
+     * @return $this
+     */
+    public function take($value)
+    {
+        return $this->limit($value);
+    }
+
     /**
      * Définit la valeur "limit" de la requête.
      *
@@ -920,24 +932,24 @@ class Builder
             $csvFile = $this->model->getCsvFile();
             $params = $this->buildApiParameters();
 
+            // Debug
+            echo "Builder::get - Récupération des données pour $csvFile\n";
+
             $response = $this->csvClient->getData($csvFile, $params);
 
             $records = $response['data'] ?? [];
 
-            // Débogage pour voir combien d'enregistrements sont retournés
-            if (config('csv-eloquent.debug', false) && app()->bound('log')) {
-                Log::debug('API CSV records count: ' . count($records));
+            // Debug
+            echo "Builder::get - Nombre d'enregistrements récupérés: " . count($records) . "\n";
+            if (!empty($records)) {
+                echo "Builder::get - Premier enregistrement:\n";
+                print_r(array_keys($records[0]));
+                echo "\n";
             }
 
             return $this->processRecords($records, $columns);
         } catch (\Exception $e) {
-            if (class_exists('\Illuminate\Support\Facades\Log') && app()->bound('log')) {
-                Log::error('Échec de la récupération des données depuis l\'API CSV', [
-                    'exception' => $e->getMessage(),
-                    'file' => $this->model->getCsvFile(),
-                ]);
-            }
-
+            echo "ERREUR dans Builder::get: " . $e->getMessage() . "\n";
             return new Collection;
         }
     }
@@ -947,75 +959,69 @@ class Builder
      *
      * @param array $records Array of records from API
      * @param array $columns Columns to select
-     * @return Collection
+     * @return \Illuminate\Support\Collection
      */
     protected function processRecords(array $records, array $columns = ['*'])
     {
+        echo "processRecords - Début avec " . count($records) . " enregistrements\n";
+
         $models = [];
+        $recordCount = 0;
 
-        // Débogage avancé
-        if (config('csv-eloquent.debug', false) && app()->bound('log')) {
-            Log::debug('Builder::processRecords - Processing records', [
-                'recordsCount' => count($records),
-                'modelClass' => get_class($this->model),
-                'csvFile' => $this->model->getCsvFile(),
-                'firstRecord' => !empty($records) ? array_keys($records[0]) : []
-            ]);
-        }
+        foreach ($records as $index => $record) {
+            $recordCount++;
+            echo "Traitement de l'enregistrement #$recordCount...\n";
 
-        foreach ($records as $record) {
             try {
                 // Vérifier que record est bien un tableau
                 if (!is_array($record)) {
-                    Log::warning('Builder::processRecords - Record is not an array', [
-                        'record' => $record
-                    ]);
+                    echo "ATTENTION: L'enregistrement #$recordCount n'est pas un tableau\n";
                     continue;
                 }
 
                 // Créer une nouvelle instance du modèle
+                echo "Création d'une nouvelle instance de modèle...\n";
                 $model = $this->model->newInstance();
                 $model->exists = true;  // Marquer comme existant
 
                 // Convertit les champs API en attributs de modèle
                 foreach ($record as $field => $value) {
+                    // Mapper le nom du champ API vers l'attribut du modèle
                     $attribute = $this->model->mapFieldToColumn($field);
 
-                    // Débogage pour chaque attribut si nécessaire
-                    if (config('csv-eloquent.debug', false) && app()->bound('log') && rand(0, 100) < 2) { // échantillonnage pour éviter trop de logs
-                        Log::debug('Builder::processRecords - Setting attribute', [
-                            'field' => $field,
-                            'attribute' => $attribute,
-                            'value' => $value
-                        ]);
+                    if ($index === 0) {
+                        echo "Attribution: $field => $attribute = " . (is_string($value) ? $value : gettype($value)) . "\n";
                     }
 
-                    $model->setAttribute($attribute, $value);
+                    try {
+                        // Utiliser la méthode fill au lieu de manipuler attributes directement
+                        $model->fillAttribute($attribute, $value);
+                    } catch (\Exception $e) {
+                        echo "ERREUR lors de l'attribution de $attribute: " . $e->getMessage() . "\n";
+                    }
                 }
 
                 $models[] = $model;
             } catch (\Exception $e) {
-                // Log l'erreur et continue avec l'enregistrement suivant
-                if (app()->bound('log')) {
-                    Log::error('Builder::processRecords - Error processing record', [
-                        'exception' => $e->getMessage(),
-                        'trace' => $e->getTraceAsString(),
-                        'record' => $record
-                    ]);
-                }
+                echo "EXCEPTION lors du traitement de l'enregistrement #$recordCount: " . $e->getMessage() . "\n";
             }
         }
 
-        // Débogage du nombre de modèles créés
-        if (config('csv-eloquent.debug', false) && app()->bound('log')) {
-            Log::debug('Builder::processRecords - Models created', [
-                'modelsCount' => count($models),
-                'modelClass' => get_class($this->model)
-            ]);
+        echo "processRecords - Modèles créés: " . count($models) . "\n";
+
+        // Vérifier le premier modèle
+        if (!empty($models)) {
+            echo "Premier modèle: " . get_class($models[0]) . "\n";
+
+            $firstModel = $models[0];
+            echo "ID du premier modèle: " . $firstModel->getKey() . "\n";
+            echo "Status du premier modèle: " . $firstModel->getAttribute('status') . "\n";
         }
 
         // Crée une collection de modèles
         $collection = $this->model->newCollection($models);
+
+        echo "Collection créée avec " . $collection->count() . " éléments\n";
 
         // Applique les clauses having si nécessaire
         if (!empty($this->havings)) {

@@ -4,6 +4,7 @@ namespace Adisaf\CsvEloquent\Models;
 
 use Adisaf\CsvEloquent\Builder as CsvBuilder;
 use Adisaf\CsvEloquent\CsvClient;
+use Adisaf\CsvEloquent\CsvCollection;
 use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Contracts\Support\Jsonable;
 use Illuminate\Database\Eloquent\Concerns\GuardsAttributes;
@@ -56,6 +57,13 @@ abstract class ModelCSV implements Arrayable, Jsonable, JsonSerializable
      * @var string
      */
     protected $primaryKey = 'id';
+
+    /**
+     * Le type de la clé primaire du modèle.
+     *
+     * @var string
+     */
+    protected $keyType = 'int';
 
     /**
      * Indique si l'ID du modèle est auto-incrémenté.
@@ -149,6 +157,89 @@ abstract class ModelCSV implements Arrayable, Jsonable, JsonSerializable
     public $exists = false;
 
     /**
+     * Obtient le type de la clé primaire.
+     *
+     * Nécessaire pour le trait HasAttributes.
+     *
+     * @return string
+     */
+    public function getKeyType()
+    {
+        return $this->keyType;
+    }
+
+    /**
+     * Définit le type de la clé primaire.
+     *
+     * @param string $type
+     * @return $this
+     */
+    public function setKeyType($type)
+    {
+        $this->keyType = $type;
+
+        return $this;
+    }
+
+    /**
+     * Obtient une pseudo-connexion pour satisfaire le trait HasAttributes.
+     *
+     * @return object
+     */
+    public function getConnection()
+    {
+        // Retourner un objet minimal qui implémente les méthodes
+        // nécessaires pour le trait HasAttributes
+        return new class {
+            public function getQueryGrammar()
+            {
+                return new class {
+                    public function getDateFormat()
+                    {
+                        return 'Y-m-d H:i:s';
+                    }
+                };
+            }
+
+            public function query()
+            {
+                return $this;
+            }
+
+            public function getPostProcessor()
+            {
+                return $this;
+            }
+
+            public function processSelectColumn($column)
+            {
+                return $column;
+            }
+        };
+    }
+
+    /**
+     * Obtient le nom de la connexion du modèle.
+     *
+     * @return string|null
+     */
+    public function getConnectionName()
+    {
+        return 'default';
+    }
+
+    /**
+     * Définit le nom de la connexion du modèle.
+     *
+     * @param string|null $name
+     * @return $this
+     */
+    public function setConnection($name)
+    {
+        return $this;
+    }
+
+    /**
      * Crée une nouvelle instance ModelCSV.
      *
      * @return void
@@ -224,7 +315,14 @@ abstract class ModelCSV implements Arrayable, Jsonable, JsonSerializable
      */
     public function getCsvFile()
     {
-        return $this->csvFile ?? Str::snake(Str::pluralStudly(class_basename($this))) . '.csv';
+        $file = $this->csvFile ?? Str::snake(Str::pluralStudly(class_basename($this)));
+
+        // Vérifier si l'extension .csv est présente
+        if (substr($file, -4) !== '.csv') {
+            $file .= '.csv';
+        }
+
+        return $file;
     }
 
     /**
@@ -268,7 +366,7 @@ abstract class ModelCSV implements Arrayable, Jsonable, JsonSerializable
     /**
      * Obtient un nouveau constructeur de requête pour le modèle.
      *
-     * @return \Adisaf\CsvEloquent\Builder
+     * @return CsvBuilder
      */
     public function newQuery()
     {
@@ -278,7 +376,7 @@ abstract class ModelCSV implements Arrayable, Jsonable, JsonSerializable
     /**
      * Obtient une nouvelle instance de constructeur de requête pour le fichier CSV.
      *
-     * @return \Adisaf\CsvEloquent\Builder
+     * @return CsvBuilder
      */
     protected function newCsvBuilder()
     {
@@ -288,20 +386,53 @@ abstract class ModelCSV implements Arrayable, Jsonable, JsonSerializable
     /**
      * Crée une nouvelle instance de Collection Eloquent.
      *
-     * @param array $models
      * @return \Illuminate\Support\Collection
      */
     public function newCollection(array $models = [])
     {
-        // Journalisation pour débogage
-        if (config('csv-eloquent.debug', false) && app()->bound('log')) {
-            Log::debug('Created new collection', [
-                'modelClass' => static::class,
-                'modelsCount' => count($models)
-            ]);
+        echo "ModelCSV::newCollection - Création d'une collection avec " . count($models) . " modèles\n";
+
+        // Vérifier le contenu des modèles
+        if (!empty($models)) {
+            echo "Premier modèle de type: " . get_class($models[0]) . "\n";
+
+            // Vérifier si les attributs sont accessibles
+            $firstModel = $models[0];
+            if (isset($firstModel->attributes)) {
+                echo "Attributs du premier modèle: " . count($firstModel->attributes) . "\n";
+
+                // Afficher les attributs
+                if (!empty($firstModel->attributes)) {
+                    echo "Exemples d'attributs:\n";
+                    $i = 0;
+                    foreach ($firstModel->attributes as $key => $value) {
+                        echo "- $key: " . (is_string($value) ? $value : gettype($value)) . "\n";
+                        $i++;
+                        if ($i >= 3) break; // Limiter à 3 attributs pour la clarté
+                    }
+                }
+            } else {
+                echo "ATTENTION: Les attributs du premier modèle ne sont pas accessibles\n";
+            }
         }
 
-        return new Collection($models);
+        // Utiliser notre collection personnalisée au lieu de la Collection standard
+        return new CsvCollection($models);
+    }
+
+    /**
+     * Obtient un attribut du modèle.
+     *
+     * @param string $key
+     * @return mixed
+     */
+    public function getAttribute($key)
+    {
+        if (isset($this->attributes[$key])) {
+            return $this->attributes[$key];
+        }
+
+        return null;
     }
 
     /**
@@ -311,7 +442,8 @@ abstract class ModelCSV implements Arrayable, Jsonable, JsonSerializable
      */
     public function toArray()
     {
-        return $this->attributesToArray();
+        // Version simplifiée pour le debug
+        return $this->attributes ?? [];
     }
 
     /**
@@ -361,6 +493,64 @@ abstract class ModelCSV implements Arrayable, Jsonable, JsonSerializable
 
         return $flipped[$field] ?? $field;
     }
+
+    /**
+     * Définit un attribut sur le modèle.
+     *
+     * @param string $key
+     * @param mixed $value
+     * @return $this
+     */
+    public function setAttribute($key, $value)
+    {
+        // Méthode simplifiée pour définir un attribut
+        $this->fillAttribute($key, $value);
+        return $this;
+    }
+
+    /**
+     * Remplit un attribut spécifique sur le modèle, en contournant les problèmes d'attributs surchargés.
+     *
+     * @param string $key
+     * @param mixed $value
+     * @return $this
+     */
+    public function fillAttribute($key, $value)
+    {
+        // Déterminer s'il s'agit d'une date
+        $isDateAttribute = in_array($key, [
+            $this::CREATED_AT,
+            $this::UPDATED_AT,
+            $this::DELETED_AT,
+        ]);
+
+        // Traitement spécial pour les dates
+        if ($isDateAttribute && !is_null($value)) {
+            $value = $this->asDateTime($value);
+        }
+
+        // Tenter de caster la valeur si un cast est défini
+        $castType = $this->casts[$key] ?? null;
+        if ($castType && !is_null($value)) {
+            try {
+                $value = $this->castAttribute($key, $value);
+            } catch (\Exception $e) {
+                echo "ATTENTION: Erreur de casting pour '$key': " . $e->getMessage() . "\n";
+                // Continuer avec la valeur non-castée
+            }
+        }
+
+        // Définir la valeur directement en initialisant l'array au besoin
+        if (!isset($this->attributes)) {
+            $this->attributes = [];
+        }
+
+        // Affecter de manière sûre
+        $this->attributes[$key] = $value;
+
+        return $this;
+    }
+
 
     /**
      * Récupère dynamiquement les attributs sur le modèle.
@@ -507,9 +697,11 @@ abstract class ModelCSV implements Arrayable, Jsonable, JsonSerializable
 
             return $response['data']['schema'] ?? [];
         } catch (\Exception $e) {
-            Log::error('Échec de la récupération du schéma pour le fichier CSV: ' . $this->getCsvFile(), [
-                'exception' => $e->getMessage(),
-            ]);
+            if (app()->bound('log')) {
+                Log::error('Échec de la récupération du schéma pour le fichier CSV: ' . $this->getCsvFile(), [
+                    'exception' => $e->getMessage(),
+                ]);
+            }
 
             return [];
         }
@@ -610,22 +802,12 @@ abstract class ModelCSV implements Arrayable, Jsonable, JsonSerializable
      */
     public function newInstance($attributes = [], $exists = false)
     {
-        // Débogage
-        if (config('csv-eloquent.debug', false) && app()->bound('log')) {
-            Log::debug('ModelCSV::newInstance called for ' . get_class($this), [
-                'attributes' => array_keys($attributes),
-                'exists' => $exists
-            ]);
-        }
-
-        // Obtenir le nom complet de la classe actuelle
-        $className = get_class($this);
-
         try {
-            // Créer une instance de cette classe
+            // Créer directement une nouvelle instance de la classe actuelle
+            $className = get_class($this);
             $model = new $className();
 
-            // Marquer si elle existe déjà
+            // Définir si l'instance existe déjà
             $model->exists = $exists;
 
             // Remplir avec les attributs fournis
@@ -635,12 +817,8 @@ abstract class ModelCSV implements Arrayable, Jsonable, JsonSerializable
 
             return $model;
         } catch (\Exception $e) {
-            // Log l'erreur
-            if (app()->bound('log')) {
-                Log::error('ModelCSV::newInstance - Error creating model instance', [
-                    'exception' => $e->getMessage(),
-                    'class' => $className
-                ]);
+            if (config('csv-eloquent.debug', false)) {
+                echo "ERREUR lors de la création d'instance: " . $e->getMessage() . "\n";
             }
 
             // Fallback à l'approche simple
@@ -649,7 +827,9 @@ abstract class ModelCSV implements Arrayable, Jsonable, JsonSerializable
 
             // Remplir avec les attributs fournis
             if (!empty($attributes)) {
-                $model->fill($attributes);
+                foreach ($attributes as $key => $value) {
+                    $model->attributes[$key] = $value;
+                }
             }
 
             return $model;
@@ -659,7 +839,7 @@ abstract class ModelCSV implements Arrayable, Jsonable, JsonSerializable
     /**
      * Commence à interroger le modèle.
      *
-     * @return \Adisaf\CsvEloquent\Builder
+     * @return CsvBuilder
      */
     public static function query()
     {
