@@ -41,13 +41,20 @@ class IntegrationTest extends TestCase
             empty($this->envVars['CSV_API_USERNAME']) ||
             empty($this->envVars['CSV_API_PASSWORD'])) {
             $this->markTestSkipped(
-                'Variables d\'environnement non configurées dans le fichier .env. '.
+                'Variables d\'environnement non configurées dans le fichier .env. ' .
                 'Ajoutez CSV_API_URL, CSV_API_USERNAME, CSV_API_PASSWORD dans votre fichier .env'
             );
         }
 
         // Initialisation des clients CSV avec les variables du .env
-        $csvClient = new CsvClient;
+        $data = [
+            'api_url' => $this->envVars['CSV_API_URL'],
+            'username' => $this->envVars['CSV_API_USERNAME'],
+            'password' => $this->envVars['CSV_API_PASSWORD'],
+            'cache_ttl' => 0, // Désactiver le cache pour les tests
+        ];
+
+        $csvClient = new CsvClient($data);
 
         // Configuration manuelle du client
         $this->setClientConfiguration($csvClient, $this->envVars);
@@ -65,9 +72,9 @@ class IntegrationTest extends TestCase
         try {
             // Déterminer le chemin vers le fichier .env (plusieurs possibilités)
             $paths = [
-                __DIR__.'/../../../.env',  // Si test exécuté depuis le package en développement
-                __DIR__.'/../../../../.env', // Si le package est dans vendor
-                getcwd().'/.env', // Répertoire de travail actuel
+                __DIR__ . '/../../../.env',  // Si test exécuté depuis le package en développement
+                __DIR__ . '/../../../../.env', // Si le package est dans vendor
+                getcwd() . '/.env', // Répertoire de travail actuel
             ];
 
             $envPath = null;
@@ -95,7 +102,7 @@ class IntegrationTest extends TestCase
                 echo "AVERTISSEMENT: Fichier .env non trouvé. Essayez de créer un fichier .env à la racine de votre projet.\n";
             }
         } catch (\Exception $e) {
-            echo 'ERREUR lors du chargement du fichier .env: '.$e->getMessage()."\n";
+            echo 'ERREUR lors du chargement du fichier .env: ' . $e->getMessage() . "\n";
             // Continuer sans plantage, le test sera ignoré si les variables nécessaires sont manquantes
         }
     }
@@ -129,7 +136,7 @@ class IntegrationTest extends TestCase
         if ($reflection->hasProperty('cacheTtl')) {
             $property = $reflection->getProperty('cacheTtl');
             $property->setAccessible(true);
-            $property->setValue($client, (int) $config['CSV_API_CACHE_TTL']);
+            $property->setValue($client, (int)$config['CSV_API_CACHE_TTL']);
         }
     }
 
@@ -261,7 +268,7 @@ class IntegrationTest extends TestCase
     {
         // Obtenir un paiement
         $payment = Payment::first();
-        if (! $payment) {
+        if (!$payment) {
             $this->markTestSkipped('Aucun paiement trouvé pour tester les relations');
         }
 
@@ -283,7 +290,7 @@ class IntegrationTest extends TestCase
 
         // Simuler une relation inverse
         $transfer = Transfer::first();
-        if (! $transfer) {
+        if (!$transfer) {
             $this->markTestSkipped('Aucun transfert trouvé pour tester les relations');
         }
 
@@ -350,7 +357,7 @@ class IntegrationTest extends TestCase
     {
         echo "\n=== {$title} ===\n";
         foreach ($data as $key => $value) {
-            echo "{$key}: ".(is_array($value) ? json_encode($value) : $value)."\n";
+            echo "{$key}: " . (is_array($value) ? json_encode($value) : $value) . "\n";
         }
         echo "===================\n";
     }
