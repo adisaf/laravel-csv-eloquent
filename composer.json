@@ -28,18 +28,18 @@
     },
     "autoload": {
         "psr-4": {
-            "VotreOrganisation\\CsvEloquent\\": "src/"
+            "Paymetrust\\CsvEloquent\\": "src/"
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "VotreOrganisation\\CsvEloquent\\Tests\\": "tests/"
+            "Paymetrust\\CsvEloquent\\Tests\\": "tests/"
         }
     },
     "extra": {
         "laravel": {
             "providers": [
-                "VotreOrganisation\\CsvEloquent\\CsvEloquentServiceProvider"
+                "Paymetrust\\CsvEloquent\\CsvEloquentServiceProvider"
             ]
         }
     },

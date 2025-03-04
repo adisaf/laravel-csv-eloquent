@@ -4,9 +4,9 @@ namespace Paymetrust\CsvEloquent\Tests\Unit;
 
 use Illuminate\Support\Collection;
 use Mockery;
-use VotreOrganisation\CsvEloquent\Builder;
-use VotreOrganisation\CsvEloquent\Models\ModelCSV;
-use VotreOrganisation\CsvEloquent\Tests\TestCase;
+use Paymetrust\CsvEloquent\Builder;
+use Paymetrust\CsvEloquent\Models\ModelCSV;
+use Paymetrust\CsvEloquent\Tests\TestCase;
 
 class BuilderTest extends TestCase
 {
@@ -20,7 +20,7 @@ class BuilderTest extends TestCase
     /**
      * Instance de Builder pour les tests.
      *
-     * @var \VotreOrganisation\CsvEloquent\Builder
+     * @var \Paymetrust\CsvEloquent\Builder
      */
     protected $builder;
 

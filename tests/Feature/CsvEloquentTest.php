@@ -3,8 +3,8 @@
 namespace Paymetrust\CsvEloquent\Tests\Feature;
 
 use Illuminate\Support\Collection;
-use VotreOrganisation\CsvEloquent\Tests\Fixtures\TestModel;
-use VotreOrganisation\CsvEloquent\Tests\TestCase;
+use Paymetrust\CsvEloquent\Tests\Fixtures\TestModel;
+use Paymetrust\CsvEloquent\Tests\TestCase;
 
 class CsvEloquentTest extends TestCase
 {

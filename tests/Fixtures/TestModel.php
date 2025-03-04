@@ -3,8 +3,8 @@
 namespace Paymetrust\CsvEloquent\Tests\Fixtures;
 
 use Illuminate\Database\Eloquent\SoftDeletes;
-use VotreOrganisation\CsvEloquent\Models\ModelCSV;
-use VotreOrganisation\CsvEloquent\Traits\HasCsvSchema;
+use Paymetrust\CsvEloquent\Models\ModelCSV;
+use Paymetrust\CsvEloquent\Traits\HasCsvSchema;
 
 class TestModel extends ModelCSV
 {

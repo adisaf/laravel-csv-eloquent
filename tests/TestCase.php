@@ -4,8 +4,8 @@ namespace Paymetrust\CsvEloquent\Tests;
 
 use Mockery;
 use Orchestra\Testbench\TestCase as BaseTestCase;
-use VotreOrganisation\CsvEloquent\CsvClient;
-use VotreOrganisation\CsvEloquent\CsvEloquentServiceProvider;
+use Paymetrust\CsvEloquent\CsvClient;
+use Paymetrust\CsvEloquent\CsvEloquentServiceProvider;
 
 abstract class TestCase extends BaseTestCase
 {

@@ -1,19 +1,19 @@
 <?php
 
-namespace VotreOrganisation\CsvEloquent\Tests\Unit;
+namespace Paymetrust\CsvEloquent\Tests\Unit;
 
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
-use VotreOrganisation\CsvEloquent\CsvClient;
-use VotreOrganisation\CsvEloquent\Exceptions\CsvApiException;
-use VotreOrganisation\CsvEloquent\Tests\TestCase;
+use Paymetrust\CsvEloquent\CsvClient;
+use Paymetrust\CsvEloquent\Exceptions\CsvApiException;
+use Paymetrust\CsvEloquent\Tests\TestCase;
 
 class CsvClientTest extends TestCase
 {
     /**
      * Instance du client pour les tests.
      *
-     * @var \VotreOrganisation\CsvEloquent\CsvClient
+     * @var \Paymetrust\CsvEloquent\CsvClient
      */
     protected $client;
 
