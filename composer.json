@@ -1,6 +1,5 @@
 {
     "name": "adisaf/laravel-csv-eloquent",
-    "version": "1.0.0",
     "description": "Une extension Laravel qui émule Eloquent ORM pour les fichiers CSV via API REST",
     "type": "library",
     "license": "proprietary",
