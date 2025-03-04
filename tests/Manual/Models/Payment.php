@@ -9,7 +9,8 @@ use Paymetrust\CsvEloquent\Traits\HasCsvSchema;
 
 class Payment extends ModelCSV
 {
-    use HasCsvSchema, SoftDeletes;
+    use HasCsvSchema;
+    use SoftDeletes;
 
     /**
      * Le nom du fichier CSV associé au modèle.
@@ -71,8 +72,8 @@ class Payment extends ModelCSV
      */
     public function getTransfers()
     {
-        if (!$this->transaction_id) {
-            return new Collection();
+        if (! $this->transaction_id) {
+            return new Collection;
         }
 
         return Transfer::where('merchant_transaction_id', $this->merchant_transaction_id)->get();
@@ -82,6 +83,7 @@ class Payment extends ModelCSV
      * Scope des paiements validés.
      *
      * @param \Paymetrust\CsvEloquent\Builder $query
+     *
      * @return \Paymetrust\CsvEloquent\Builder
      */
     public function scopeValidated($query)
@@ -93,6 +95,7 @@ class Payment extends ModelCSV
      * Scope des paiements échoués.
      *
      * @param \Paymetrust\CsvEloquent\Builder $query
+     *
      * @return \Paymetrust\CsvEloquent\Builder
      */
     public function scopeFailed($query)
@@ -105,6 +108,7 @@ class Payment extends ModelCSV
      *
      * @param \Paymetrust\CsvEloquent\Builder $query
      * @param float $amount
+     *
      * @return \Paymetrust\CsvEloquent\Builder
      */
     public function scopeMinAmount($query, $amount)
@@ -117,6 +121,7 @@ class Payment extends ModelCSV
      *
      * @param \Paymetrust\CsvEloquent\Builder $query
      * @param string $countryCode
+     *
      * @return \Paymetrust\CsvEloquent\Builder
      */
     public function scopeForCountry($query, $countryCode)
@@ -129,6 +134,7 @@ class Payment extends ModelCSV
      *
      * @param \Paymetrust\CsvEloquent\Builder $query
      * @param string $carrier
+     *
      * @return \Paymetrust\CsvEloquent\Builder
      */
     public function scopeForCarrier($query, $carrier)

@@ -8,7 +8,8 @@ use Paymetrust\CsvEloquent\Traits\HasCsvSchema;
 
 class Transfer extends ModelCSV
 {
-    use HasCsvSchema, SoftDeletes;
+    use HasCsvSchema;
+    use SoftDeletes;
 
     /**
      * Le nom du fichier CSV associé au modèle.
@@ -64,7 +65,7 @@ class Transfer extends ModelCSV
      */
     public function getPayment()
     {
-        if (!$this->merchant_transaction_id) {
+        if (! $this->merchant_transaction_id) {
             return null;
         }
 
@@ -75,6 +76,7 @@ class Transfer extends ModelCSV
      * Scope des transferts terminés (succès).
      *
      * @param \Paymetrust\CsvEloquent\Builder $query
+     *
      * @return \Paymetrust\CsvEloquent\Builder
      */
     public function scopeSuccessful($query)
@@ -86,6 +88,7 @@ class Transfer extends ModelCSV
      * Scope des transferts échoués.
      *
      * @param \Paymetrust\CsvEloquent\Builder $query
+     *
      * @return \Paymetrust\CsvEloquent\Builder
      */
     public function scopeFailed($query)
@@ -98,6 +101,7 @@ class Transfer extends ModelCSV
      *
      * @param \Paymetrust\CsvEloquent\Builder $query
      * @param string $countryCode
+     *
      * @return \Paymetrust\CsvEloquent\Builder
      */
     public function scopeForCountry($query, $countryCode)
@@ -110,6 +114,7 @@ class Transfer extends ModelCSV
      *
      * @param \Paymetrust\CsvEloquent\Builder $query
      * @param string $carrier
+     *
      * @return \Paymetrust\CsvEloquent\Builder
      */
     public function scopeForCarrier($query, $carrier)
@@ -123,6 +128,7 @@ class Transfer extends ModelCSV
      * @param \Paymetrust\CsvEloquent\Builder $query
      * @param string $startDate
      * @param string $endDate
+     *
      * @return \Paymetrust\CsvEloquent\Builder
      */
     public function scopeBetweenDates($query, $startDate, $endDate)

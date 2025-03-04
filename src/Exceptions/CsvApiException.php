@@ -18,11 +18,10 @@ class CsvApiException extends Exception
      *
      * @param string $message
      * @param int $code
-     * @param \Throwable|null $previous
-     * @param array|null $responseData
+     *
      * @return void
      */
-    public function __construct($message = "", $code = 0, \Throwable $previous = null, array $responseData = null)
+    public function __construct($message = '', $code = 0, ?\Throwable $previous = null, ?array $responseData = null)
     {
         parent::__construct($message, $code, $previous);
 

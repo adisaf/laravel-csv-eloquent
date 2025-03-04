@@ -26,8 +26,6 @@ class BuilderTest extends TestCase
 
     /**
      * Configuration avant chaque test.
-     *
-     * @return void
      */
     protected function setUp(): void
     {
@@ -44,6 +42,7 @@ class BuilderTest extends TestCase
         $this->modelMock->shouldReceive('newInstance')->andReturnUsing(function ($attributes = [], $exists = false) {
             $model = Mockery::mock(ModelCSV::class);
             $model->shouldReceive('setAttribute')->andReturnSelf();
+
             return $model;
         });
         $this->modelMock->shouldReceive('newCollection')->andReturnUsing(function ($items = []) {
@@ -169,9 +168,9 @@ class BuilderTest extends TestCase
             ],
             'meta' => [
                 'pagination' => [
-                    'totalRecords' => 2
-                ]
-            ]
+                    'totalRecords' => 2,
+                ],
+            ],
         ];
 
         $this->csvClientMock->shouldReceive('getData')

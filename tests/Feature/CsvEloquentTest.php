@@ -10,8 +10,6 @@ class CsvEloquentTest extends TestCase
 {
     /**
      * Configuration avant chaque test.
-     *
-     * @return void
      */
     protected function setUp(): void
     {
@@ -28,8 +26,8 @@ class CsvEloquentTest extends TestCase
                         'created_at' => ['type' => 'TIMESTAMP', 'has_nulls' => false],
                         'updated_at' => ['type' => 'TIMESTAMP', 'has_nulls' => false],
                         'deleted_at' => ['type' => 'TIMESTAMP', 'has_nulls' => true],
-                    ]
-                ]
+                    ],
+                ],
             ]);
     }
 
@@ -43,7 +41,7 @@ class CsvEloquentTest extends TestCase
                 'data' => [
                     ['id' => 1, 'name' => 'Test 1', 'age' => 25],
                     ['id' => 2, 'name' => 'Test 2', 'age' => 30],
-                ]
+                ],
             ]);
 
         // Act
@@ -61,8 +59,8 @@ class CsvEloquentTest extends TestCase
         $this->csvClientMock->shouldReceive('getData')
             ->andReturn([
                 'data' => [
-                    ['id' => 1, 'name' => 'Test 1', 'age' => 25]
-                ]
+                    ['id' => 1, 'name' => 'Test 1', 'age' => 25],
+                ],
             ]);
 
         // Act
@@ -85,7 +83,7 @@ class CsvEloquentTest extends TestCase
             ->andReturn([
                 'data' => [
                     ['id' => 2, 'name' => 'Test 2', 'age' => 30],
-                ]
+                ],
             ]);
 
         // Act
@@ -108,7 +106,7 @@ class CsvEloquentTest extends TestCase
                 'data' => [
                     ['id' => 2, 'name' => 'Test 2', 'age' => 30],
                     ['id' => 1, 'name' => 'Test 1', 'age' => 25],
-                ]
+                ],
             ]);
 
         // Act
@@ -137,8 +135,8 @@ class CsvEloquentTest extends TestCase
                 'meta' => [
                     'pagination' => [
                         'totalRecords' => 5,
-                    ]
-                ]
+                    ],
+                ],
             ]);
 
         // Act

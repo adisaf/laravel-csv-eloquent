@@ -8,7 +8,8 @@ use VotreOrganisation\CsvEloquent\Traits\HasCsvSchema;
 
 class TestModel extends ModelCSV
 {
-    use HasCsvSchema, SoftDeletes;
+    use HasCsvSchema;
+    use SoftDeletes;
 
     /**
      * Le nom du fichier CSV associé au modèle.

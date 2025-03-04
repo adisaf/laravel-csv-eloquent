@@ -54,6 +54,7 @@ class CsvClient
      * Obtient la liste des fichiers CSV disponibles.
      *
      * @return array
+     *
      * @throws \App\Exceptions\CsvApiException
      */
     public function getFiles()
@@ -71,16 +72,17 @@ class CsvClient
      * Obtient les données d'un fichier CSV.
      *
      * @param string $file
-     * @param array $params
+     *
      * @return array
+     *
      * @throws \App\Exceptions\CsvApiException
      */
     public function getData($file, array $params = [])
     {
-        $cacheKey = 'csv_api_data_' . $file . '_' . md5(json_encode($params));
+        $cacheKey = 'csv_api_data_'.$file.'_'.md5(json_encode($params));
 
         return Cache::remember($cacheKey, $this->cacheTtl, function () use ($file, $params) {
-            $response = $this->makeRequest('GET', '/api/' . $file, $params);
+            $response = $this->makeRequest('GET', '/api/'.$file, $params);
 
             return $response;
         });
@@ -90,15 +92,17 @@ class CsvClient
      * Obtient le schéma d'un fichier CSV.
      *
      * @param string $file
+     *
      * @return array
+     *
      * @throws \App\Exceptions\CsvApiException
      */
     public function getSchema($file)
     {
-        $cacheKey = 'csv_api_schema_' . $file;
+        $cacheKey = 'csv_api_schema_'.$file;
 
         return Cache::remember($cacheKey, $this->cacheTtl * 10, function () use ($file) {
-            $response = $this->makeRequest('GET', '/api/' . $file . '/schema');
+            $response = $this->makeRequest('GET', '/api/'.$file.'/schema');
 
             return $response;
         });
@@ -109,14 +113,15 @@ class CsvClient
      *
      * @param string $method
      * @param string $endpoint
-     * @param array $params
+     *
      * @return array
+     *
      * @throws \App\Exceptions\CsvApiException
      */
     protected function makeRequest($method, $endpoint, array $params = [])
     {
         try {
-            $url = rtrim($this->baseUrl, '/') . $endpoint;
+            $url = rtrim($this->baseUrl, '/').$endpoint;
 
             $response = Http::withBasicAuth($this->username, $this->password)
                 ->timeout(30)
@@ -131,21 +136,21 @@ class CsvClient
                 ]);
 
                 throw new CsvApiException(
-                    'Échec de la requête API CSV: ' . $response->status(),
+                    'Échec de la requête API CSV: '.$response->status(),
                     $response->status()
                 );
             }
 
             return $response->json();
         } catch (\Exception $e) {
-            if (!$e instanceof CsvApiException) {
+            if (! $e instanceof CsvApiException) {
                 Log::error('Exception lors de la requête API CSV', [
                     'exception' => $e->getMessage(),
                     'endpoint' => $endpoint,
                 ]);
 
                 throw new CsvApiException(
-                    'Exception lors de la requête API CSV: ' . $e->getMessage(),
+                    'Exception lors de la requête API CSV: '.$e->getMessage(),
                     0,
                     $e
                 );
@@ -159,15 +164,16 @@ class CsvClient
      * Vide le cache pour un fichier CSV spécifique.
      *
      * @param string $file
+     *
      * @return void
      */
     public function clearCache($file = null)
     {
         if ($file) {
-            Cache::forget('csv_api_schema_' . $file);
+            Cache::forget('csv_api_schema_'.$file);
             // Nous ne pouvons pas facilement vider tous les caches de données
             // car ils dépendent des paramètres, donc nous utilisons un motif
-            Cache::forget('csv_api_data_' . $file . '_*');
+            Cache::forget('csv_api_data_'.$file.'_*');
         } else {
             // Vide tous les caches liés à l'API CSV
             $keys = ['csv_api_files'];

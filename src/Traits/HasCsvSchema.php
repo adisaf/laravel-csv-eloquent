@@ -29,6 +29,7 @@ trait HasCsvSchema
      * Détermine si une colonne existe dans le schéma CSV.
      *
      * @param string $column
+     *
      * @return bool
      */
     public function hasCsvColumn($column)
@@ -43,6 +44,7 @@ trait HasCsvSchema
      * Obtient le type de données d'une colonne CSV.
      *
      * @param string $column
+     *
      * @return string|null
      */
     public function getCsvColumnType($column)
@@ -57,6 +59,7 @@ trait HasCsvSchema
      * Détermine si une colonne CSV peut contenir des valeurs nulles.
      *
      * @param string $column
+     *
      * @return bool
      */
     public function csvColumnHasNulls($column)
@@ -71,6 +74,7 @@ trait HasCsvSchema
      * Obtient des exemples de valeurs pour une colonne CSV.
      *
      * @param string $column
+     *
      * @return array|null
      */
     public function getCsvColumnSamples($column)
@@ -98,22 +102,28 @@ trait HasCsvSchema
                 case 'BIGINT':
                 case 'INTEGER':
                     $casts[$column] = 'integer';
+
                     break;
                 case 'DOUBLE':
                 case 'FLOAT':
                     $casts[$column] = 'float';
+
                     break;
                 case 'BOOLEAN':
                     $casts[$column] = 'boolean';
+
                     break;
                 case 'DATE':
                     $casts[$column] = 'date';
+
                     break;
                 case 'TIMESTAMP':
                     $casts[$column] = 'datetime';
+
                     break;
                 case 'JSON':
                     $casts[$column] = 'array';
+
                     break;
             }
         }

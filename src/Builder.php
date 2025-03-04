@@ -93,6 +93,7 @@ class Builder
      * Crée une nouvelle instance de constructeur de requête.
      *
      * @param \App\Models\Csv\CsvClient $csvClient
+     *
      * @return void
      */
     public function __construct(CsvClient $csvClient)
@@ -103,7 +104,6 @@ class Builder
     /**
      * Définit l'instance du modèle pour la requête.
      *
-     * @param \App\Models\ModelCSV $model
      * @return $this
      */
     public function setModel(ModelCSV $model)
@@ -127,6 +127,7 @@ class Builder
      * Définit les colonnes à sélectionner.
      *
      * @param array|mixed $columns
+     *
      * @return $this
      */
     public function select($columns = ['*'])
@@ -143,6 +144,7 @@ class Builder
      * @param mixed $operator
      * @param mixed $value
      * @param string $boolean
+     *
      * @return $this
      */
     public function where($column, $operator = null, $value = null, $boolean = 'and')
@@ -192,6 +194,7 @@ class Builder
      *
      * @param array $wheres
      * @param string $boolean
+     *
      * @return $this
      */
     protected function addArrayOfWheres($wheres, $boolean = 'and')
@@ -206,8 +209,8 @@ class Builder
     /**
      * Ajoute une instruction where imbriquée à la requête.
      *
-     * @param \Closure $callback
      * @param string $boolean
+     *
      * @return $this
      */
     public function whereNested(\Closure $callback, $boolean = 'and')
@@ -232,6 +235,7 @@ class Builder
      * @param string|array|\Closure $column
      * @param mixed $operator
      * @param mixed $value
+     *
      * @return $this
      */
     public function orWhere($column, $operator = null, $value = null)
@@ -246,6 +250,7 @@ class Builder
      * @param mixed $operator
      * @param mixed $value
      * @param string $boolean
+     *
      * @return $this
      */
     public function whereNot($column, $operator = null, $value = null, $boolean = 'and')
@@ -268,6 +273,7 @@ class Builder
      *
      * @param array $wheres
      * @param string $boolean
+     *
      * @return $this
      */
     protected function whereNotArray($wheres, $boolean = 'and')
@@ -282,8 +288,8 @@ class Builder
     /**
      * Ajoute une instruction where not imbriquée à la requête.
      *
-     * @param \Closure $callback
      * @param string $boolean
+     *
      * @return $this
      */
     public function whereNotNested(\Closure $callback, $boolean = 'and')
@@ -308,6 +314,7 @@ class Builder
      * @param string $column
      * @param mixed $values
      * @param string $boolean
+     *
      * @return $this
      */
     public function whereIn($column, $values, $boolean = 'and')
@@ -327,6 +334,7 @@ class Builder
      *
      * @param string $column
      * @param mixed $values
+     *
      * @return $this
      */
     public function orWhereIn($column, $values)
@@ -340,6 +348,7 @@ class Builder
      * @param string $column
      * @param mixed $values
      * @param string $boolean
+     *
      * @return $this
      */
     public function whereNotIn($column, $values, $boolean = 'and')
@@ -359,6 +368,7 @@ class Builder
      *
      * @param string $column
      * @param mixed $values
+     *
      * @return $this
      */
     public function orWhereNotIn($column, $values)
@@ -370,8 +380,8 @@ class Builder
      * Ajoute une clause "where between" à la requête.
      *
      * @param string $column
-     * @param array $values
      * @param string $boolean
+     *
      * @return $this
      */
     public function whereBetween($column, array $values, $boolean = 'and')
@@ -390,7 +400,7 @@ class Builder
      * Ajoute une clause "or where between" à la requête.
      *
      * @param string $column
-     * @param array $values
+     *
      * @return $this
      */
     public function orWhereBetween($column, array $values)
@@ -402,8 +412,8 @@ class Builder
      * Ajoute une clause "where not between" à la requête.
      *
      * @param string $column
-     * @param array $values
      * @param string $boolean
+     *
      * @return $this
      */
     public function whereNotBetween($column, array $values, $boolean = 'and')
@@ -413,7 +423,7 @@ class Builder
             'operator' => '$not',
             'value' => [
                 'operator' => '$between',
-                'value' => $values
+                'value' => $values,
             ],
             'boolean' => $boolean,
         ];
@@ -425,7 +435,7 @@ class Builder
      * Ajoute une clause "or where not between" à la requête.
      *
      * @param string $column
-     * @param array $values
+     *
      * @return $this
      */
     public function orWhereNotBetween($column, array $values)
@@ -438,6 +448,7 @@ class Builder
      *
      * @param string $column
      * @param string $boolean
+     *
      * @return $this
      */
     public function whereNull($column, $boolean = 'and')
@@ -456,6 +467,7 @@ class Builder
      * Ajoute une clause "or where null" à la requête.
      *
      * @param string $column
+     *
      * @return $this
      */
     public function orWhereNull($column)
@@ -468,6 +480,7 @@ class Builder
      *
      * @param string $column
      * @param string $boolean
+     *
      * @return $this
      */
     public function whereNotNull($column, $boolean = 'and')
@@ -486,6 +499,7 @@ class Builder
      * Ajoute une clause "or where not null" à la requête.
      *
      * @param string $column
+     *
      * @return $this
      */
     public function orWhereNotNull($column)
@@ -499,6 +513,7 @@ class Builder
      * @param string $column
      * @param mixed $value
      * @param string $boolean
+     *
      * @return $this
      */
     public function whereJsonContains($column, $value, $boolean = 'and')
@@ -519,6 +534,7 @@ class Builder
      * @param string $column
      * @param string $key
      * @param string $boolean
+     *
      * @return $this
      */
     public function whereJsonContainsKey($column, $key, $boolean = 'and')
@@ -541,6 +557,7 @@ class Builder
      * @param string $operator
      * @param mixed $value
      * @param string $boolean
+     *
      * @return $this
      */
     public function whereDate($column, $operator, $value = null, $boolean = 'and')
@@ -562,6 +579,7 @@ class Builder
      *
      * @param string $column
      * @param string $direction
+     *
      * @return $this
      */
     public function orderBy($column, $direction = 'asc')
@@ -578,6 +596,7 @@ class Builder
      * Ajoute une clause "order by" descendante à la requête.
      *
      * @param string $column
+     *
      * @return $this
      */
     public function orderByDesc($column)
@@ -589,6 +608,7 @@ class Builder
      * Définit la valeur "offset" de la requête.
      *
      * @param int $value
+     *
      * @return $this
      */
     public function offset($value)
@@ -602,6 +622,7 @@ class Builder
      * Définit la valeur "limit" de la requête.
      *
      * @param int $value
+     *
      * @return $this
      */
     public function limit($value)
@@ -618,6 +639,7 @@ class Builder
      *
      * @param int $page
      * @param int $perPage
+     *
      * @return $this
      */
     public function forPage($page, $perPage = 15)
@@ -629,6 +651,7 @@ class Builder
      * Ajoute une clause "group by" à la requête.
      *
      * @param array|string $groups
+     *
      * @return $this
      */
     public function groupBy($groups)
@@ -647,6 +670,7 @@ class Builder
      * @param string|null $operator
      * @param string|null $value
      * @param string $boolean
+     *
      * @return $this
      */
     public function having($column, $operator = null, $value = null, $boolean = 'and')
@@ -667,6 +691,7 @@ class Builder
      * Récupère le résultat "count" de la requête.
      *
      * @param string $columns
+     *
      * @return int
      */
     public function count($columns = '*')
@@ -680,6 +705,7 @@ class Builder
      * Mappe un opérateur Laravel à un opérateur API.
      *
      * @param string $operator
+     *
      * @return string
      */
     protected function mapOperator($operator)
@@ -705,6 +731,7 @@ class Builder
      * Mappe un nom de colonne au nom de champ CSV.
      *
      * @param string $column
+     *
      * @return string
      */
     protected function mapColumnToField($column)
@@ -726,15 +753,15 @@ class Builder
         $params = [];
 
         // Gère les filtres
-        if (!empty($this->wheres)) {
+        if (! empty($this->wheres)) {
             $params['filters'] = $this->buildFilters($this->wheres);
         }
 
         // Gère l'ordre
-        if (!empty($this->orders)) {
+        if (! empty($this->orders)) {
             $sortParts = [];
             foreach ($this->orders as $order) {
-                $sortParts[] = $order['column'] . ':' . $order['direction'];
+                $sortParts[] = $order['column'].':'.$order['direction'];
             }
             $params['sort'] = implode(',', $sortParts);
         }
@@ -762,7 +789,6 @@ class Builder
     /**
      * Construit les filtres API basés sur les clauses where de la requête.
      *
-     * @param array $wheres
      * @return array
      */
     protected function buildFilters(array $wheres)
@@ -778,7 +804,7 @@ class Builder
                     'value' => null,
                     'boolean' => 'and',
                 ];
-            } elseif (!$this->withTrashed) {
+            } elseif (! $this->withTrashed) {
                 $wheres[] = [
                     'column' => $this->model::DELETED_AT,
                     'operator' => 'is null',
@@ -817,7 +843,7 @@ class Builder
                     if (strpos($boolean, 'not') !== false) {
                         $filters[$column]['$not'] = [$operator => $value];
                     } elseif ($boolean === 'or') {
-                        if (!isset($filters['$or'])) {
+                        if (! isset($filters['$or'])) {
                             $filters['$or'] = [];
                         }
                         $filters['$or'][] = [$column => [$operator => $value]];
@@ -835,6 +861,7 @@ class Builder
      * Exécute la requête et obtient le premier résultat.
      *
      * @param array $columns
+     *
      * @return \App\Models\ModelCSV|null
      */
     public function first($columns = ['*'])
@@ -846,6 +873,7 @@ class Builder
      * Exécute la requête et obtient le premier résultat ou lance une exception.
      *
      * @param array $columns
+     *
      * @return \App\Models\ModelCSV
      *
      * @throws \Illuminate\Database\Eloquent\ModelNotFoundException
@@ -854,7 +882,7 @@ class Builder
     {
         $result = $this->first($columns);
 
-        if (!$result) {
+        if (! $result) {
             throw (new ModelNotFoundException)->setModel(
                 get_class($this->model)
             );
@@ -868,6 +896,7 @@ class Builder
      *
      * @param mixed $id
      * @param array $columns
+     *
      * @return \App\Models\ModelCSV|null
      */
     public function find($id, $columns = ['*'])
@@ -883,6 +912,7 @@ class Builder
      * Exécute la requête et obtient les résultats.
      *
      * @param array $columns
+     *
      * @return \Illuminate\Support\Collection
      */
     public function get($columns = ['*'])
@@ -902,15 +932,13 @@ class Builder
                 'file' => $this->model->getCsvFile(),
             ]);
 
-            return new Collection();
+            return new Collection;
         }
     }
 
     /**
      * Traite la réponse API et la convertit en une collection de modèles.
      *
-     * @param array $records
-     * @param array $columns
      * @return \Illuminate\Support\Collection
      */
     protected function processRecords(array $records, array $columns = ['*'])
@@ -933,7 +961,7 @@ class Builder
         $collection = $this->model->newCollection($models);
 
         // Applique les clauses having si nécessaire
-        if (!empty($this->havings)) {
+        if (! empty($this->havings)) {
             $collection = $this->applyHavingClauses($collection);
         }
 
@@ -943,7 +971,6 @@ class Builder
     /**
      * Applique les clauses having à la collection.
      *
-     * @param \Illuminate\Support\Collection $collection
      * @return \Illuminate\Support\Collection
      */
     protected function applyHavingClauses(Collection $collection)
@@ -991,6 +1018,7 @@ class Builder
      * @param array $columns
      * @param string $pageName
      * @param int|null $page
+     *
      * @return \Illuminate\Pagination\LengthAwarePaginator
      */
     public function paginate($perPage = 15, $columns = ['*'], $pageName = 'page', $page = null)
@@ -1045,6 +1073,7 @@ class Builder
      * @param array $columns
      * @param string $pageName
      * @param int|null $page
+     *
      * @return \Illuminate\Pagination\Paginator
      */
     public function simplePaginate($perPage = 15, $columns = ['*'], $pageName = 'page', $page = null)
@@ -1073,6 +1102,7 @@ class Builder
      * @param array $columns
      * @param string $cursorName
      * @param string|null $cursor
+     *
      * @return \Illuminate\Pagination\CursorPaginator
      */
     public function cursorPaginate($perPage = 15, $columns = ['*'], $cursorName = 'cursor', $cursor = null)

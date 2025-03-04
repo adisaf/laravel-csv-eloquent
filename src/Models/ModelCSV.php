@@ -21,13 +21,13 @@ use JsonSerializable;
 
 abstract class ModelCSV implements Arrayable, Jsonable, JsonSerializable
 {
-    use ForwardsCalls,
-        GuardsAttributes,
-        HasAttributes,
-        HasEvents,
-        HasGlobalScopes,
-        HasTimestamps,
-        HidesAttributes;
+    use ForwardsCalls;
+    use GuardsAttributes;
+    use HasAttributes;
+    use HasEvents;
+    use HasGlobalScopes;
+    use HasTimestamps;
+    use HidesAttributes;
 
     /**
      * Le nom du fichier CSV associé au modèle.
@@ -144,7 +144,6 @@ abstract class ModelCSV implements Arrayable, Jsonable, JsonSerializable
     /**
      * Crée une nouvelle instance ModelCSV.
      *
-     * @param array $attributes
      * @return void
      */
     public function __construct(array $attributes = [])
@@ -162,7 +161,7 @@ abstract class ModelCSV implements Arrayable, Jsonable, JsonSerializable
      */
     protected function bootIfNotBooted()
     {
-        if (!isset(static::$booted[static::class])) {
+        if (! isset(static::$booted[static::class])) {
             static::$booted[static::class] = true;
 
             static::bootTraits();
@@ -179,7 +178,7 @@ abstract class ModelCSV implements Arrayable, Jsonable, JsonSerializable
         $class = static::class;
 
         foreach (class_uses_recursive($class) as $trait) {
-            if (method_exists($class, $method = 'boot' . class_basename($trait))) {
+            if (method_exists($class, $method = 'boot'.class_basename($trait))) {
                 forward_static_call([$class, $method]);
             }
         }
@@ -200,7 +199,6 @@ abstract class ModelCSV implements Arrayable, Jsonable, JsonSerializable
     /**
      * Remplit le modèle avec un tableau d'attributs.
      *
-     * @param array $attributes
      * @return $this
      */
     public function fill(array $attributes)
@@ -219,13 +217,14 @@ abstract class ModelCSV implements Arrayable, Jsonable, JsonSerializable
      */
     public function getCsvFile()
     {
-        return $this->csvFile ?? Str::snake(Str::pluralStudly(class_basename($this))) . '.csv';
+        return $this->csvFile ?? Str::snake(Str::pluralStudly(class_basename($this))).'.csv';
     }
 
     /**
      * Définit le nom du fichier CSV.
      *
      * @param string $csvFile
+     *
      * @return $this
      */
     public function setCsvFile($csvFile)
@@ -242,8 +241,8 @@ abstract class ModelCSV implements Arrayable, Jsonable, JsonSerializable
      */
     public static function getCsvClient()
     {
-        if (!static::$csvClient) {
-            static::$csvClient = new CsvClient();
+        if (! static::$csvClient) {
+            static::$csvClient = new CsvClient;
         }
 
         return static::$csvClient;
@@ -252,7 +251,6 @@ abstract class ModelCSV implements Arrayable, Jsonable, JsonSerializable
     /**
      * Définit l'instance du client API CSV.
      *
-     * @param \App\Models\Csv\CsvClient $client
      * @return void
      */
     public static function setCsvClient(CsvClient $client)
@@ -283,7 +281,6 @@ abstract class ModelCSV implements Arrayable, Jsonable, JsonSerializable
     /**
      * Crée une nouvelle instance de Collection Eloquent.
      *
-     * @param array $models
      * @return \Illuminate\Support\Collection
      */
     public function newCollection(array $models = [])
@@ -305,6 +302,7 @@ abstract class ModelCSV implements Arrayable, Jsonable, JsonSerializable
      * Convertit l'instance du modèle en JSON.
      *
      * @param int $options
+     *
      * @return string
      */
     public function toJson($options = 0)
@@ -326,6 +324,7 @@ abstract class ModelCSV implements Arrayable, Jsonable, JsonSerializable
      * Mappe un nom de colonne au nom de champ CSV.
      *
      * @param string $column
+     *
      * @return string
      */
     public function mapColumnToField($column)
@@ -337,6 +336,7 @@ abstract class ModelCSV implements Arrayable, Jsonable, JsonSerializable
      * Mappe un champ CSV au nom de colonne.
      *
      * @param string $field
+     *
      * @return string
      */
     public function mapFieldToColumn($field)
@@ -350,6 +350,7 @@ abstract class ModelCSV implements Arrayable, Jsonable, JsonSerializable
      * Récupère dynamiquement les attributs sur le modèle.
      *
      * @param string $key
+     *
      * @return mixed
      */
     public function __get($key)
@@ -362,6 +363,7 @@ abstract class ModelCSV implements Arrayable, Jsonable, JsonSerializable
      *
      * @param string $key
      * @param mixed $value
+     *
      * @return void
      */
     public function __set($key, $value)
@@ -373,17 +375,19 @@ abstract class ModelCSV implements Arrayable, Jsonable, JsonSerializable
      * Détermine si un attribut ou une relation existe sur le modèle.
      *
      * @param string $key
+     *
      * @return bool
      */
     public function __isset($key)
     {
-        return !is_null($this->getAttribute($key));
+        return ! is_null($this->getAttribute($key));
     }
 
     /**
      * Désactive un attribut sur le modèle.
      *
      * @param string $key
+     *
      * @return void
      */
     public function __unset($key)
@@ -396,6 +400,7 @@ abstract class ModelCSV implements Arrayable, Jsonable, JsonSerializable
      *
      * @param string $method
      * @param array $parameters
+     *
      * @return mixed
      */
     public function __call($method, $parameters)
@@ -408,6 +413,7 @@ abstract class ModelCSV implements Arrayable, Jsonable, JsonSerializable
      *
      * @param string $method
      * @param array $parameters
+     *
      * @return mixed
      */
     public static function __callStatic($method, $parameters)
@@ -429,6 +435,7 @@ abstract class ModelCSV implements Arrayable, Jsonable, JsonSerializable
      * Définit si les IDs sont auto-incrémentés.
      *
      * @param bool $value
+     *
      * @return $this
      */
     public function setIncrementing($value)
@@ -462,6 +469,7 @@ abstract class ModelCSV implements Arrayable, Jsonable, JsonSerializable
      * Définit la clé primaire du modèle.
      *
      * @param string $key
+     *
      * @return $this
      */
     public function setKeyName($key)
@@ -483,8 +491,8 @@ abstract class ModelCSV implements Arrayable, Jsonable, JsonSerializable
 
             return $response['data']['schema'] ?? [];
         } catch (\Exception $e) {
-            Log::error('Échec de la récupération du schéma pour le fichier CSV: ' . $this->getCsvFile(), [
-                'exception' => $e->getMessage()
+            Log::error('Échec de la récupération du schéma pour le fichier CSV: '.$this->getCsvFile(), [
+                'exception' => $e->getMessage(),
             ]);
 
             return [];
@@ -516,6 +524,7 @@ abstract class ModelCSV implements Arrayable, Jsonable, JsonSerializable
      *
      * @param mixed $id
      * @param array $columns
+     *
      * @return \App\Models\ModelCSV|Collection|null
      */
     public static function find($id, $columns = ['*'])
@@ -532,6 +541,7 @@ abstract class ModelCSV implements Arrayable, Jsonable, JsonSerializable
      *
      * @param \Illuminate\Contracts\Support\Arrayable|array $ids
      * @param array $columns
+     *
      * @return \Illuminate\Support\Collection
      */
     public static function findMany($ids, $columns = ['*'])
@@ -552,6 +562,7 @@ abstract class ModelCSV implements Arrayable, Jsonable, JsonSerializable
      *
      * @param mixed $id
      * @param array $columns
+     *
      * @return \App\Models\ModelCSV
      *
      * @throws \Illuminate\Database\Eloquent\ModelNotFoundException
@@ -564,7 +575,7 @@ abstract class ModelCSV implements Arrayable, Jsonable, JsonSerializable
             if (count($result) === count(array_unique($id))) {
                 return $result;
             }
-        } elseif (!is_null($result)) {
+        } elseif (! is_null($result)) {
             return $result;
         }
 
@@ -578,11 +589,12 @@ abstract class ModelCSV implements Arrayable, Jsonable, JsonSerializable
      *
      * @param array $attributes
      * @param bool $exists
+     *
      * @return static
      */
     public function newInstance($attributes = [], $exists = false)
     {
-        $model = new static((array)$attributes);
+        $model = new static((array) $attributes);
 
         $model->exists = $exists;
 

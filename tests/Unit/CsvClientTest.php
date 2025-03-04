@@ -19,15 +19,13 @@ class CsvClientTest extends TestCase
 
     /**
      * Configuration avant chaque test.
-     *
-     * @return void
      */
     protected function setUp(): void
     {
         parent::setUp();
 
         // Utilisons le vrai client au lieu du mock pour ces tests
-        $this->client = new CsvClient();
+        $this->client = new CsvClient;
     }
 
     /** @test */
@@ -40,8 +38,8 @@ class CsvClientTest extends TestCase
                     ['name' => 'test1.csv', 'size' => 1000],
                     ['name' => 'test2.csv', 'size' => 2000],
                 ],
-                'meta' => ['count' => 2]
-            ], 200)
+                'meta' => ['count' => 2],
+            ], 200),
         ]);
 
         // Act
@@ -63,8 +61,8 @@ class CsvClientTest extends TestCase
                     ['id' => 1, 'name' => 'Item 1'],
                     ['id' => 2, 'name' => 'Item 2'],
                 ],
-                'meta' => ['pagination' => ['totalRecords' => 2]]
-            ], 200)
+                'meta' => ['pagination' => ['totalRecords' => 2]],
+            ], 200),
         ]);
 
         // Act
@@ -87,9 +85,9 @@ class CsvClientTest extends TestCase
                     'schema' => [
                         'id' => ['type' => 'BIGINT'],
                         'name' => ['type' => 'VARCHAR'],
-                    ]
-                ]
-            ], 200)
+                    ],
+                ],
+            ], 200),
         ]);
 
         // Act
@@ -106,7 +104,7 @@ class CsvClientTest extends TestCase
     {
         // Arrange
         Http::fake([
-            'http://test-api.example.com/api/*' => Http::response(['data' => []], 200)
+            'http://test-api.example.com/api/*' => Http::response(['data' => []], 200),
         ]);
 
         // Act
@@ -124,7 +122,7 @@ class CsvClientTest extends TestCase
     {
         // Arrange
         Http::fake([
-            'http://test-api.example.com/api/*' => Http::response(['error' => 'Access denied'], 403)
+            'http://test-api.example.com/api/*' => Http::response(['error' => 'Access denied'], 403),
         ]);
 
         // Act & Assert

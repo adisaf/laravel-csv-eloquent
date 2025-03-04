@@ -2,7 +2,9 @@
 
 namespace Paymetrust\CsvEloquent\Tests\Manual;
 
+use Dotenv\Dotenv;
 use Illuminate\Support\Collection;
+use Paymetrust\CsvEloquent\CsvClient;
 use Paymetrust\CsvEloquent\Tests\Manual\Models\Payment;
 use Paymetrust\CsvEloquent\Tests\Manual\Models\Transfer;
 use PHPUnit\Framework\TestCase;
@@ -14,11 +16,16 @@ use PHPUnit\Framework\TestCase;
  * Il nécessite une instance réelle d'API CSV pour fonctionner.
  *
  * Pour exécuter ce test manuellement:
- * 1. Configurez les variables d'environnement pour l'API CSV
+ * 1. Configurez votre fichier .env avec les variables d'API CSV
  * 2. Exécutez: php vendor/bin/phpunit tests/Manual/IntegrationTest.php
  */
 class IntegrationTest extends TestCase
 {
+    /**
+     * Variables d'environnement pour la configuration.
+     */
+    protected $envVars = [];
+
     /**
      * Configuration avant les tests.
      */
@@ -26,25 +33,110 @@ class IntegrationTest extends TestCase
     {
         parent::setUp();
 
-        // Vérifiez que les variables d'environnement sont définies
-        if (!getenv('CSV_API_URL') || !getenv('CSV_API_USERNAME') || !getenv('CSV_API_PASSWORD')) {
+        // Chargement du fichier .env à la racine du projet
+        $this->loadDotEnv();
+
+        // Vérification de la présence des variables nécessaires
+        if (empty($this->envVars['CSV_API_URL']) ||
+            empty($this->envVars['CSV_API_USERNAME']) ||
+            empty($this->envVars['CSV_API_PASSWORD'])) {
             $this->markTestSkipped(
-                'Variables d\'environnement non configurées. Ajoutez CSV_API_URL, CSV_API_USERNAME, CSV_API_PASSWORD'
+                'Variables d\'environnement non configurées dans le fichier .env. '.
+                'Ajoutez CSV_API_URL, CSV_API_USERNAME, CSV_API_PASSWORD dans votre fichier .env'
             );
         }
 
-        // Configuration de l'environnement pour le test
-        putenv('CSV_API_CACHE_TTL=0'); // Désactive le cache pour les tests
+        // Initialisation des clients CSV avec les variables du .env
+        $csvClient = new CsvClient;
 
-        // Initialisation des modèles
-        Payment::setCsvClient(new \Paymetrust\CsvEloquent\CsvClient());
-        Transfer::setCsvClient(new \Paymetrust\CsvEloquent\CsvClient());
+        // Configuration manuelle du client
+        $this->setClientConfiguration($csvClient, $this->envVars);
+
+        // Assignation du client aux modèles
+        Payment::setCsvClient($csvClient);
+        Transfer::setCsvClient($csvClient);
+    }
+
+    /**
+     * Charge les variables d'environnement du fichier .env
+     */
+    protected function loadDotEnv(): void
+    {
+        try {
+            // Déterminer le chemin vers le fichier .env (plusieurs possibilités)
+            $paths = [
+                __DIR__.'/../../../.env',  // Si test exécuté depuis le package en développement
+                __DIR__.'/../../../../.env', // Si le package est dans vendor
+                getcwd().'/.env', // Répertoire de travail actuel
+            ];
+
+            $envPath = null;
+            foreach ($paths as $path) {
+                if (file_exists($path)) {
+                    $envPath = dirname($path);
+
+                    break;
+                }
+            }
+
+            if ($envPath) {
+                // Charger le fichier .env avec Dotenv
+                $dotenv = Dotenv::createImmutable($envPath);
+                $dotenv->load();
+
+                // Stocker les variables d'environnement
+                $this->envVars = [
+                    'CSV_API_URL' => $_ENV['CSV_API_URL'] ?? null,
+                    'CSV_API_USERNAME' => $_ENV['CSV_API_USERNAME'] ?? null,
+                    'CSV_API_PASSWORD' => $_ENV['CSV_API_PASSWORD'] ?? null,
+                    'CSV_API_CACHE_TTL' => $_ENV['CSV_API_CACHE_TTL'] ?? 0, // Désactiver le cache par défaut
+                ];
+            } else {
+                echo "AVERTISSEMENT: Fichier .env non trouvé. Essayez de créer un fichier .env à la racine de votre projet.\n";
+            }
+        } catch (\Exception $e) {
+            echo 'ERREUR lors du chargement du fichier .env: '.$e->getMessage()."\n";
+            // Continuer sans plantage, le test sera ignoré si les variables nécessaires sont manquantes
+        }
+    }
+
+    /**
+     * Configure manuellement le client CSV avec les variables d'environnement
+     */
+    protected function setClientConfiguration(CsvClient $client, array $config): void
+    {
+        // Méthode de reflection pour définir les propriétés protégées
+        $reflection = new \ReflectionClass($client);
+
+        if ($reflection->hasProperty('baseUrl')) {
+            $property = $reflection->getProperty('baseUrl');
+            $property->setAccessible(true);
+            $property->setValue($client, $config['CSV_API_URL']);
+        }
+
+        if ($reflection->hasProperty('username')) {
+            $property = $reflection->getProperty('username');
+            $property->setAccessible(true);
+            $property->setValue($client, $config['CSV_API_USERNAME']);
+        }
+
+        if ($reflection->hasProperty('password')) {
+            $property = $reflection->getProperty('password');
+            $property->setAccessible(true);
+            $property->setValue($client, $config['CSV_API_PASSWORD']);
+        }
+
+        if ($reflection->hasProperty('cacheTtl')) {
+            $property = $reflection->getProperty('cacheTtl');
+            $property->setAccessible(true);
+            $property->setValue($client, (int) $config['CSV_API_CACHE_TTL']);
+        }
     }
 
     /**
      * Teste le chargement des modèles séparément.
      */
-    public function testLoadingBothModels(): void
+    public function test_loading_both_models(): void
     {
         // Obtenir quelques paiements
         $payments = Payment::limit(5)->get();
@@ -66,7 +158,7 @@ class IntegrationTest extends TestCase
     /**
      * Teste le filtrage sur les deux modèles.
      */
-    public function testFilteringBothModels(): void
+    public function test_filtering_both_models(): void
     {
         // Filtrer les paiements
         $filteredPayments = Payment::where('amount', '>', 1000)
@@ -80,7 +172,7 @@ class IntegrationTest extends TestCase
                 'id' => $filteredPayments->first()->id,
                 'amount' => $filteredPayments->first()->amount,
                 'status' => $filteredPayments->first()->status,
-            ] : 'N/A'
+            ] : 'N/A',
         ]);
 
         // Filtrer les transferts
@@ -95,14 +187,14 @@ class IntegrationTest extends TestCase
                 'id' => $filteredTransfers->first()->id,
                 'amount' => $filteredTransfers->first()->amount,
                 'status' => $filteredTransfers->first()->status,
-            ] : 'N/A'
+            ] : 'N/A',
         ]);
     }
 
     /**
      * Teste le tri sur les deux modèles.
      */
-    public function testSortingBothModels(): void
+    public function test_sorting_both_models(): void
     {
         // Trier les paiements par montant (décroissant)
         $paymentsSorted = Payment::orderBy('amount', 'desc')
@@ -135,7 +227,7 @@ class IntegrationTest extends TestCase
     /**
      * Teste la pagination sur les deux modèles.
      */
-    public function testPaginationBothModels(): void
+    public function test_pagination_both_models(): void
     {
         // Paginer les paiements
         $paymentsPage1 = Payment::paginate(5, ['*'], 'page', 1);
@@ -165,11 +257,11 @@ class IntegrationTest extends TestCase
     /**
      * Teste la simulation des relations entre paiements et transferts.
      */
-    public function testSimulatedRelationships(): void
+    public function test_simulated_relationships(): void
     {
         // Obtenir un paiement
         $payment = Payment::first();
-        if (!$payment) {
+        if (! $payment) {
             $this->markTestSkipped('Aucun paiement trouvé pour tester les relations');
         }
 
@@ -191,7 +283,7 @@ class IntegrationTest extends TestCase
 
         // Simuler une relation inverse
         $transfer = Transfer::first();
-        if (!$transfer) {
+        if (! $transfer) {
             $this->markTestSkipped('Aucun transfert trouvé pour tester les relations');
         }
 
@@ -214,7 +306,7 @@ class IntegrationTest extends TestCase
     /**
      * Teste les fonctionnalités avancées comme le groupement et l'agrégation.
      */
-    public function testAdvancedFeatures(): void
+    public function test_advanced_features(): void
     {
         // Tester le groupement et le comptage (simulés côté client)
         $payments = Payment::limit(100)->get(); // Limiter pour éviter de charger toutes les données
@@ -242,12 +334,12 @@ class IntegrationTest extends TestCase
         // Tester les scopes personnalisés
         $ciPayments = Payment::forCountry('CI')->limit(5)->get();
         $this->outputTestInfo('Paiements en Côte d\'Ivoire (via scope)', [
-            'Nombre de paiements' => $ciPayments->count()
+            'Nombre de paiements' => $ciPayments->count(),
         ]);
 
         $omPayments = Payment::forCarrier('OM')->limit(5)->get();
         $this->outputTestInfo('Paiements via Orange Money (via scope)', [
-            'Nombre de paiements' => $omPayments->count()
+            'Nombre de paiements' => $omPayments->count(),
         ]);
     }
 
@@ -258,7 +350,7 @@ class IntegrationTest extends TestCase
     {
         echo "\n=== {$title} ===\n";
         foreach ($data as $key => $value) {
-            echo "{$key}: " . (is_array($value) ? json_encode($value) : $value) . "\n";
+            echo "{$key}: ".(is_array($value) ? json_encode($value) : $value)."\n";
         }
         echo "===================\n";
     }

@@ -20,6 +20,7 @@ abstract class TestCase extends BaseTestCase
      * Configurez l'environnement de test.
      *
      * @param \Illuminate\Foundation\Application $app
+     *
      * @return void
      */
     protected function getEnvironmentSetUp($app)
@@ -35,6 +36,7 @@ abstract class TestCase extends BaseTestCase
      * Obtenir les fournisseurs de services du package.
      *
      * @param \Illuminate\Foundation\Application $app
+     *
      * @return array
      */
     protected function getPackageProviders($app)
@@ -46,8 +48,6 @@ abstract class TestCase extends BaseTestCase
 
     /**
      * Configurez avant chaque test.
-     *
-     * @return void
      */
     protected function setUp(): void
     {
@@ -60,8 +60,6 @@ abstract class TestCase extends BaseTestCase
 
     /**
      * Nettoie après chaque test.
-     *
-     * @return void
      */
     protected function tearDown(): void
     {

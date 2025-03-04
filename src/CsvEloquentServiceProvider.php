@@ -15,12 +15,12 @@ class CsvEloquentServiceProvider extends ServiceProvider implements DeferrablePr
     {
         // Fusionne la configuration
         $this->mergeConfigFrom(
-            __DIR__ . '/../config/csv-eloquent.php', 'csv-eloquent'
+            __DIR__.'/../config/csv-eloquent.php', 'csv-eloquent'
         );
 
         // Enregistre le singleton du client CSV
         $this->app->singleton(CsvClient::class, function ($app) {
-            return new CsvClient();
+            return new CsvClient;
         });
     }
 
@@ -34,7 +34,7 @@ class CsvEloquentServiceProvider extends ServiceProvider implements DeferrablePr
         // Publie la configuration
         if ($this->app->runningInConsole()) {
             $this->publishes([
-                __DIR__ . '/../config/csv-eloquent.php' => config_path('csv-eloquent.php'),
+                __DIR__.'/../config/csv-eloquent.php' => config_path('csv-eloquent.php'),
             ], 'csv-eloquent-config');
         }
     }
