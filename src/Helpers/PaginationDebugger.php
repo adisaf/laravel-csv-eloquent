@@ -2,6 +2,8 @@
 
 namespace Adisaf\CsvEloquent\Helpers;
 
+use Illuminate\Support\Facades\Log;
+
 class PaginationDebugger
 {
     /**
@@ -13,17 +15,7 @@ class PaginationDebugger
      */
     public static function inspect($paginator, $context = 'default')
     {
-        // Assurez-vous que le dossier logs existe
-        $logsDir = storage_path('logs');
-        if (!file_exists($logsDir)) {
-            mkdir($logsDir, 0755, true);
-        }
-
-        $logFile = $logsDir . '/pagination-debug.log';
-
-        // Information à enregistrer
         $info = [
-            'timestamp' => date('Y-m-d H:i:s'),
             'context' => $context,
             'class' => get_class($paginator),
             'properties' => [],
@@ -82,14 +74,7 @@ class PaginationDebugger
                 $info['jsonSerialize'] = ['error' => $e->getMessage()];
             }
         }
-
-        // Écrire dans le fichier de log
-        file_put_contents(
-            $logFile,
-            json_encode($info, JSON_PRETTY_PRINT) . "\n\n",
-            FILE_APPEND
-        );
-
+        Log::debug('PaginationDebugger::inspect', $info);
         return $paginator;
     }
 }
