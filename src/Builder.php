@@ -260,7 +260,6 @@ class Builder extends \Illuminate\Database\Eloquent\Builder
     /**
      * Définit l'instance du modèle pour la requête.
      *
-     * @param \Illuminate\Database\Eloquent\Model $model
      *
      * @return $this
      */

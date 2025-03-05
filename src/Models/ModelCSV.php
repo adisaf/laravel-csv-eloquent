@@ -198,10 +198,12 @@ abstract class ModelCSV extends \Illuminate\Database\Eloquent\Model
     {
         // Retourner un objet minimal qui implémente les méthodes
         // nécessaires pour le trait HasAttributes
-        return new class {
+        return new class
+        {
             public function getQueryGrammar()
             {
-                return new class {
+                return new class
+                {
                     public function getDateFormat()
                     {
                         return 'Y-m-d H:i:s';
@@ -268,7 +270,7 @@ abstract class ModelCSV extends \Illuminate\Database\Eloquent\Model
      */
     protected function bootIfNotBooted()
     {
-        if (!isset(static::$booted[static::class])) {
+        if (! isset(static::$booted[static::class])) {
             static::$booted[static::class] = true;
 
             static::bootTraits();
@@ -285,7 +287,7 @@ abstract class ModelCSV extends \Illuminate\Database\Eloquent\Model
         $class = static::class;
 
         foreach (class_uses_recursive($class) as $trait) {
-            if (method_exists($class, $method = 'boot' . class_basename($trait))) {
+            if (method_exists($class, $method = 'boot'.class_basename($trait))) {
                 forward_static_call([$class, $method]);
             }
         }
@@ -326,12 +328,8 @@ abstract class ModelCSV extends \Illuminate\Database\Eloquent\Model
     {
         $file = $this->csvFile ?? Str::snake(Str::pluralStudly(class_basename($this)));
 
-        // Vérifier si l'extension .csv est présente
-        if (substr($file, -4) !== '.csv') {
-            $file .= '.csv';
-        }
-
-        return $file;
+        // Enlever l'extension .csv du nom de fichier s'il est présent
+        return str_replace('.csv', '', $file);
     }
 
     /**
@@ -355,7 +353,7 @@ abstract class ModelCSV extends \Illuminate\Database\Eloquent\Model
      */
     public static function getCsvClient()
     {
-        if (!static::$csvClient) {
+        if (! static::$csvClient) {
             static::$csvClient = new CsvClient;
         }
 
@@ -400,31 +398,31 @@ abstract class ModelCSV extends \Illuminate\Database\Eloquent\Model
     public function newCollection(array $models = [])
     {
         if (config('csv-eloquent.debug', false) && app()->bound('log')) {
-            Log::debug("ModelCSV::newCollection - Création d'une collection avec " . count($models) . " modèles\n");
+            Log::debug("ModelCSV::newCollection - Création d'une collection avec ".count($models)." modèles\n");
         }
 
         // Vérifier le contenu des modèles
-        if (!empty($models)) {
+        if (! empty($models)) {
             if (config('csv-eloquent.debug', false) && app()->bound('log')) {
-                Log::debug('Premier modèle de type: ' . get_class($models[0]));
+                Log::debug('Premier modèle de type: '.get_class($models[0]));
             }
 
             // Vérifier si les attributs sont accessibles
             $firstModel = $models[0];
             if (isset($firstModel->attributes)) {
                 if (config('csv-eloquent.debug', false) && app()->bound('log')) {
-                    Log::debug('Attributs du premier modèle: ' . count($firstModel->attributes));
+                    Log::debug('Attributs du premier modèle: '.count($firstModel->attributes));
                 }
 
                 // Afficher les attributs
-                if (!empty($firstModel->attributes)) {
+                if (! empty($firstModel->attributes)) {
                     if (config('csv-eloquent.debug', false) && app()->bound('log')) {
                         Log::debug("Exemples d'attributs:\n");
                     }
                     $i = 0;
                     foreach ($firstModel->attributes as $key => $value) {
                         if (config('csv-eloquent.debug', false) && app()->bound('log')) {
-                            Log::debug("- $key: " . (is_string($value) ? $value : gettype($value)));
+                            Log::debug("- $key: ".(is_string($value) ? $value : gettype($value)));
                         }
                         $i++;
                         if ($i >= 3) {
@@ -552,25 +550,25 @@ abstract class ModelCSV extends \Illuminate\Database\Eloquent\Model
         ]);
 
         // Traitement spécial pour les dates
-        if ($isDateAttribute && !is_null($value)) {
+        if ($isDateAttribute && ! is_null($value)) {
             $value = $this->asDateTime($value);
         }
 
         // Tenter de caster la valeur si un cast est défini
         $castType = $this->casts[$key] ?? null;
-        if ($castType && !is_null($value)) {
+        if ($castType && ! is_null($value)) {
             try {
                 $value = $this->castAttribute($key, $value);
             } catch (\Exception $e) {
                 if (config('csv-eloquent.debug', false) && app()->bound('log')) {
-                    Log::debug("ATTENTION: Erreur de casting pour '$key': " . $e->getMessage());
+                    Log::debug("ATTENTION: Erreur de casting pour '$key': ".$e->getMessage());
                 }
                 // Continuer avec la valeur non-castée
             }
         }
 
         // Définir la valeur directement en initialisant l'array au besoin
-        if (!isset($this->attributes)) {
+        if (! isset($this->attributes)) {
             $this->attributes = [];
         }
 
@@ -614,7 +612,7 @@ abstract class ModelCSV extends \Illuminate\Database\Eloquent\Model
      */
     public function __isset($key)
     {
-        return !is_null($this->getAttribute($key));
+        return ! is_null($this->getAttribute($key));
     }
 
     /**
@@ -726,7 +724,7 @@ abstract class ModelCSV extends \Illuminate\Database\Eloquent\Model
             return $response['data']['schema'] ?? [];
         } catch (\Exception $e) {
             if (app()->bound('log')) {
-                Log::error('Échec de la récupération du schéma pour le fichier CSV: ' . $this->getCsvFile(), [
+                Log::error('Échec de la récupération du schéma pour le fichier CSV: '.$this->getCsvFile(), [
                     'exception' => $e->getMessage(),
                 ]);
             }
@@ -749,6 +747,7 @@ abstract class ModelCSV extends \Illuminate\Database\Eloquent\Model
      * Obtient tous les modèles du fichier CSV.
      *
      * @param string[] $columns
+     *
      * @return Collection
      */
     public static function all($columns = ['*'])
@@ -812,7 +811,7 @@ abstract class ModelCSV extends \Illuminate\Database\Eloquent\Model
             if (count($result) === count(array_unique($id))) {
                 return $result;
             }
-        } elseif (!is_null($result)) {
+        } elseif (! is_null($result)) {
             return $result;
         }
 
@@ -840,21 +839,21 @@ abstract class ModelCSV extends \Illuminate\Database\Eloquent\Model
             $model->exists = $exists;
 
             // Remplir avec les attributs fournis
-            if (!empty($attributes)) {
+            if (! empty($attributes)) {
                 $model->fill($attributes);
             }
 
             return $model;
         } catch (\Exception $e) {
             if (config('csv-eloquent.debug', false) && app()->bound('log')) {
-                Log::debug("ERREUR lors de la création d'instance: " . $e->getMessage());
+                Log::debug("ERREUR lors de la création d'instance: ".$e->getMessage());
             }
             // Fallback à l'approche simple
             $model = new static;
             $model->exists = $exists;
 
             // Remplir avec les attributs fournis
-            if (!empty($attributes)) {
+            if (! empty($attributes)) {
                 foreach ($attributes as $key => $value) {
                     $model->attributes[$key] = $value;
                 }

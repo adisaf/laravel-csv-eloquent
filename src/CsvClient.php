@@ -3,6 +3,7 @@
 namespace Adisaf\CsvEloquent;
 
 use Adisaf\CsvEloquent\Exceptions\CsvApiException;
+use Adisaf\CsvEloquent\Helpers\Formatter;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -84,16 +85,25 @@ class CsvClient
         // Vérification du nom de fichier
         $originalFile = $file;
 
-        // Assurez-vous que le nom du fichier ne contient pas déjà l'extension .csv
-        if (substr($file, -4) !== '.csv') {
-            $file .= '.csv';
-        }
+        // Enlever l'extension .csv du nom de fichier s'il est présent
+        $file = str_replace('.csv', '', $file);
 
         // Débogage du nom de fichier
         if (config('csv-eloquent.debug', false) && app()->bound('log')) {
             Log::debug("Nom de fichier original: {$originalFile}, Utilisé pour l'API: {$file}");
         }
 
+        if (isset($params['pagination']['limit'])) {
+            $params['pagination']['pageSize'] = $params['pagination']['limit'];
+            unset($params['pagination']['limit']);
+        }
+
+        if (isset($params['pagination']['start'])) {
+            $params['pagination']['page'] = $params['pagination']['start'] + 1;
+            unset($params['pagination']['start']);
+        }
+        Formatter::formatDateTime($params);
+        Formatter::transformBetween($params);
         $cacheKey = 'csv_api_data_'.$file.'_'.md5(json_encode($params));
 
         if (app()->bound('cache')) {
@@ -116,10 +126,8 @@ class CsvClient
      */
     public function getSchema($file)
     {
-        // Assurez-vous que le nom du fichier ne contient pas déjà l'extension .csv
-        if (substr($file, -4) !== '.csv') {
-            $file .= '.csv';
-        }
+        // Enlever l'extension .csv du nom de fichier s'il est présent
+        $file = str_replace('.csv', '', $file);
 
         $cacheKey = 'csv_api_schema_'.$file;
 
