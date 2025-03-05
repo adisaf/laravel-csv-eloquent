@@ -1289,9 +1289,19 @@ class Builder extends \Illuminate\Database\Eloquent\Builder
         return $collection;
     }
 
+    /**
+     * Pagine la requête donnée.
+     *
+     * @param int $perPage
+     * @param array|string|string[] $columns
+     * @param string $pageName
+     * @param null $page
+     * @param null $total
+     * @return \Illuminate\Pagination\LengthAwarePaginator
+     */
     public function paginate($perPage = 15, $columns = ['*'], $pageName = 'page', $page = null, $total = null)
     {
-        $page = $page ?: Paginator::resolveCurrentPage($pageName);
+        $page = $page ?: \Illuminate\Pagination\Paginator::resolveCurrentPage($pageName);
 
         $this->forPage($page, $perPage);
 
@@ -1303,53 +1313,60 @@ class Builder extends \Illuminate\Database\Eloquent\Builder
 
             $response = $this->csvClient->getData($csvFile, $params);
 
-            // Récupérer le total des différentes structures possibles
-            $totalRecords = $response['meta']['pagination']['total']
-                ?? $response['meta']['pagination']['totalRecords']
-                ?? $response['meta']['total']
-                ?? null;
-
-            // Forcer la conversion en entier
-            if ($totalRecords !== null) {
-                $totalRecords = (int)$totalRecords;
-            } else {
-                $totalRecords = count($results);
-            }
-
-            if (config('csv-eloquent.debug', false) && app()->bound('log')) {
-                Log::debug('Pagination - Détails:', [
-                    'total' => $totalRecords,
+            // Log complet pour déboguer
+            if (config('csv-eloquent.debug', false)) {
+                \Illuminate\Support\Facades\Log::debug("Données de pagination brutes pour $csvFile", [
+                    'response_meta' => $response['meta'] ?? [],
                     'page' => $page,
-                    'perPage' => $perPage,
-                    'type' => gettype($totalRecords),
+                    'perPage' => $perPage
                 ]);
             }
 
-            // Utiliser notre paginateur compatible Nova
-            return new NovaCompatiblePaginator(
+            // Recherche du total dans les différentes structures possibles
+            $total = null;
+            if (isset($response['meta']['pagination']['total'])) {
+                $total = $response['meta']['pagination']['total'];
+            } elseif (isset($response['meta']['pagination']['totalRecords'])) {
+                $total = $response['meta']['pagination']['totalRecords'];
+            } elseif (isset($response['meta']['total'])) {
+                $total = $response['meta']['total'];
+            } else {
+                $total = count($results);
+            }
+
+            // Force la conversion en entier
+            $total = (int)$total;
+
+            if (config('csv-eloquent.debug', false)) {
+                \Illuminate\Support\Facades\Log::debug("Total calculé: $total (type: " . gettype($total) . ")");
+            }
+
+            // Utiliser notre paginateur corrigé
+            return new \Adisaf\CsvEloquent\Paginator\FixedPaginator(
                 $results,
-                $totalRecords,
+                $total,
                 $perPage,
                 $page,
                 [
-                    'path' => Paginator::resolveCurrentPath(),
+                    'path' => \Illuminate\Pagination\Paginator::resolveCurrentPath(),
                     'pageName' => $pageName,
                 ]
             );
         } catch (\Exception $e) {
-            Log::error('Erreur de pagination:', [
-                'message' => $e->getMessage(),
+            \Illuminate\Support\Facades\Log::error('Erreur de pagination', [
+                'exception' => $e->getMessage(),
                 'file' => $this->model->getCsvFile(),
+                'trace' => $e->getTraceAsString()
             ]);
 
-            // Même en cas d'erreur, utiliser notre paginateur personnalisé
-            return new NovaCompatiblePaginator(
+            // Même en cas d'erreur, utiliser notre paginateur corrigé
+            return new \Adisaf\CsvEloquent\Paginator\FixedPaginator(
                 $results,
                 count($results),
                 $perPage,
                 $page,
                 [
-                    'path' => Paginator::resolveCurrentPath(),
+                    'path' => \Illuminate\Pagination\Paginator::resolveCurrentPath(),
                     'pageName' => $pageName,
                 ]
             );
