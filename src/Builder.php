@@ -1325,26 +1325,23 @@ class Builder extends \Illuminate\Database\Eloquent\Builder
                 ]);
             }
 
-            // Recherche du total dans les différentes structures possibles
+            // Extraire total avec vérification de type et logging
             $total = null;
             if (isset($response['meta']['pagination']['total'])) {
-                $total = $response['meta']['pagination']['total'];
+                $total = (int) $response['meta']['pagination']['total'];
             } elseif (isset($response['meta']['pagination']['totalRecords'])) {
-                $total = $response['meta']['pagination']['totalRecords'];
+                $total = (int) $response['meta']['pagination']['totalRecords'];
             } elseif (isset($response['meta']['total'])) {
-                $total = $response['meta']['total'];
+                $total = (int) $response['meta']['total'];
             } else {
                 $total = count($results);
             }
 
-            // Force la conversion en entier
-            $total = (int) $total;
-
             if (config('csv-eloquent.debug', false)) {
-                \Illuminate\Support\Facades\Log::debug("Total calculé: $total (type: ".gettype($total).')');
+                \Illuminate\Support\Facades\Log::debug("Total obtenu pour pagination: $total (type: ".gettype($total).')');
             }
 
-            // Utiliser notre paginateur corrigé
+            // Créer le paginateur avec le total explicitement castré
             return new \Adisaf\CsvEloquent\Paginator\FixedPaginator(
                 $results,
                 $total,

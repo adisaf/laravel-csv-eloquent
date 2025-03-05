@@ -171,25 +171,33 @@ class CsvClient
      */
     protected function normalizeResponse(array $response)
     {
-        // Si nous avons des métadonnées de pagination, nous les normalisons
+        // Vérifier si nous avons des métadonnées de pagination
         if (isset($response['meta']) && isset($response['meta']['pagination'])) {
-            // Assurer que totalRecords est présent, même si l'API utilise 'total'
-            if (! isset($response['meta']['pagination']['totalRecords']) && isset($response['meta']['pagination']['total'])) {
-                $response['meta']['pagination']['totalRecords'] = $response['meta']['pagination']['total'];
-            }
+            $pagination = $response['meta']['pagination'];
 
-            // Assurer que total est présent, même si l'API utilise 'totalRecords'
-            if (! isset($response['meta']['pagination']['total']) && isset($response['meta']['pagination']['totalRecords'])) {
-                $response['meta']['pagination']['total'] = $response['meta']['pagination']['totalRecords'];
-            }
+            // Assurer une structure complète avec tous les champs nécessaires
+            $normalizedPagination = [
+                'current_page' => isset($pagination['page']) ? (int) $pagination['page'] : 1,
+                'per_page' => isset($pagination['pageSize']) ? (int) $pagination['pageSize'] : 15,
+                'last_page' => isset($pagination['pageCount']) ? (int) $pagination['pageCount'] : 1,
+                'total' => isset($pagination['total']) ? (int) $pagination['total'] : 0,
+                'totalRecords' => isset($pagination['total']) ? (int) $pagination['total'] : 0,
+            ];
 
-            // Forcer les valeurs à être des entiers
-            if (isset($response['meta']['pagination']['total'])) {
-                $response['meta']['pagination']['total'] = (int) $response['meta']['pagination']['total'];
-            }
+            // Calculer from/to pour la compatibilité complète avec Laravel
+            $normalizedPagination['from'] = ($normalizedPagination['current_page'] - 1) * $normalizedPagination['per_page'] + 1;
+            $normalizedPagination['to'] = min(
+                $normalizedPagination['from'] + $normalizedPagination['per_page'] - 1,
+                $normalizedPagination['total']
+            );
 
-            if (isset($response['meta']['pagination']['totalRecords'])) {
-                $response['meta']['pagination']['totalRecords'] = (int) $response['meta']['pagination']['totalRecords'];
+            // Remplacer la structure originale par notre structure normalisée
+            $response['meta']['pagination'] = $normalizedPagination;
+
+            // Pour une compatibilité maximale, dupliquer certaines valeurs au niveau racine
+            // Nova les recherche parfois ici
+            if (! isset($response['total'])) {
+                $response['total'] = $normalizedPagination['total'];
             }
         }
 

@@ -8,6 +8,28 @@ use Illuminate\Support\Facades\Log;
 class FixedPaginator extends LengthAwarePaginator
 {
     /**
+     * Crée une nouvelle instance de paginateur.
+     *
+     * @param mixed $items
+     * @param int $total
+     * @param int $perPage
+     * @param int|null $currentPage
+     *
+     * @return void
+     */
+    public function __construct($items, $total, $perPage, $currentPage, array $options = [])
+    {
+        // Forcer le total à être un entier AVANT d'appeler le constructeur parent
+        $total = is_numeric($total) ? (int) $total : count($items);
+
+        if (config('csv-eloquent.debug', false)) {
+            Log::debug("FixedPaginator::__construct - Total forcé à: {$total}");
+        }
+
+        parent::__construct($items, $total, $perPage, $currentPage, $options);
+    }
+
+    /**
      * Convertit le paginateur en tableau.
      * Cette méthode corrige les problèmes de sérialisation JSON.
      *
@@ -41,10 +63,12 @@ class FixedPaginator extends LengthAwarePaginator
         }
 
         // Log pour débogage
-        Log::debug('FixedPaginator::toArray', [
-            'total_type' => isset($array['total']) ? gettype($array['total']) : 'non défini',
-            'total_value' => $array['total'] ?? 'N/A',
-        ]);
+        if (config('csv-eloquent.debug', false)) {
+            Log::debug('FixedPaginator::toArray', [
+                'total_type' => isset($array['total']) ? gettype($array['total']) : 'non défini',
+                'total_value' => $array['total'] ?? 'N/A',
+            ]);
+        }
 
         return $array;
     }
@@ -61,9 +85,11 @@ class FixedPaginator extends LengthAwarePaginator
 
         // Si le total est un objet ou non numérique, utiliser une valeur par défaut
         if (is_object($total) || ! is_numeric($total)) {
-            Log::debug('FixedPaginator::total - Total est un objet ou non numérique', [
-                'total_type' => gettype($total),
-            ]);
+            if (config('csv-eloquent.debug', false)) {
+                Log::debug('FixedPaginator::total - Total est un objet ou non numérique', [
+                    'total_type' => gettype($total),
+                ]);
+            }
 
             return count($this->items());
         }

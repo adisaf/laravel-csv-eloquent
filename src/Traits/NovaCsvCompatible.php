@@ -88,11 +88,30 @@ trait NovaCsvCompatible
             $forcedTotal = (int) $paginator->total();
 
             // Manipuler l'objet paginator pour s'assurer que total est un entier
-            $reflection = new \ReflectionClass($paginator);
-            if ($reflection->hasProperty('total')) {
-                $totalProperty = $reflection->getProperty('total');
-                $totalProperty->setAccessible(true);
-                $totalProperty->setValue($paginator, $forcedTotal);
+            try {
+                $refClass = new \ReflectionClass($paginator);
+                $refProp = null;
+
+                // Chercher la propriété dans toute la hiérarchie des classes
+                do {
+                    try {
+                        $refProp = $refClass->getProperty('total');
+
+                        break;
+                    } catch (\ReflectionException $e) {
+                        $refClass = $refClass->getParentClass();
+                        if (! $refClass) {
+                            break;
+                        }
+                    }
+                } while ($refClass);
+
+                if ($refProp) {
+                    $refProp->setAccessible(true);
+                    $refProp->setValue($paginator, $forcedTotal);
+                }
+            } catch (\Exception $e) {
+                Log::error("Impossible de modifier la propriété 'total': ".$e->getMessage());
             }
 
             // Préparer le tableau de réponse
@@ -138,11 +157,16 @@ trait NovaCsvCompatible
     public static function formatIndexResponse(NovaRequest $request, array $response)
     {
         // S'assurer que 'total' existe et est un entier au niveau racine
-        if (! isset($response['total']) || ! is_numeric($response['total'])) {
-            $response['total'] = isset($response['resources']['total']) ?
+        if (! isset($response['total']) || ! is_int($response['total'])) {
+            $total = isset($response['resources']['total']) ?
                 (int) $response['resources']['total'] :
-                count($response['resources']['data'] ?? []);
+                ($response['resources']->total() !== null ?
+                    (int) $response['resources']->total() :
+                    count($response['resources']['data'] ?? []));
+
+            $response['total'] = $total;
         } else {
+            // S'assurer que c'est bien un entier même si déjà défini
             $response['total'] = (int) $response['total'];
         }
 
