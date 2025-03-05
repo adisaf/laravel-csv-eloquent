@@ -17,16 +17,16 @@ class CsvCollection extends Collection
     public function __construct($items = [])
     {
         if (config('csv-eloquent.debug', false) && app()->bound('log')) {
-            Log::debug('CsvCollection::__construct - Création avec '.count($items)." éléments\n");
+            Log::debug('CsvCollection::__construct - Création avec ' . count($items) . " éléments\n");
         }
 
         // Vérifier les items avant de les passer à parent
-        if (! empty($items)) {
+        if (!empty($items)) {
             if (config('csv-eloquent.debug', false) && app()->bound('log')) {
                 if (is_object($items[0])) {
-                    Log::debug('Premier item de type: '.get_class($items[0]));
+                    Log::debug('Premier item de type: ' . get_class($items[0]));
                 } else {
-                    Log::debug('Premier item de type: '.gettype($items[0]));
+                    Log::debug('Premier item de type: ' . gettype($items[0]));
                 }
             }
         }
@@ -35,7 +35,7 @@ class CsvCollection extends Collection
 
         // Vérifier après construction
         if (config('csv-eloquent.debug', false) && app()->bound('log')) {
-            Log::debug('CsvCollection après construction, count(): '.$this->count());
+            Log::debug('CsvCollection après construction, count(): ' . $this->count());
         }
     }
 
@@ -48,7 +48,7 @@ class CsvCollection extends Collection
     {
         $result = parent::isEmpty();
         if (config('csv-eloquent.debug', false) && app()->bound('log')) {
-            Log::debug('CsvCollection::isEmpty appelé, résultat: '.($result ? 'true' : 'false').', count(): '.$this->count());
+            Log::debug('CsvCollection::isEmpty appelé, résultat: ' . ($result ? 'true' : 'false') . ', count(): ' . $this->count());
         }
 
         return $result;
@@ -65,7 +65,7 @@ class CsvCollection extends Collection
     {
         $result = parent::first($callback, $default);
         if (config('csv-eloquent.debug', false) && app()->bound('log')) {
-            Log::debug('CsvCollection::first appelé, résultat: '.($result === null ? 'null' : 'objet'));
+            Log::debug('CsvCollection::first appelé, résultat: ' . ($result === null ? 'null' : 'objet'));
         }
 
         return $result;
@@ -78,7 +78,7 @@ class CsvCollection extends Collection
     {
         $count = parent::count();
         if (config('csv-eloquent.debug', false) && app()->bound('log')) {
-            Log::debug('CsvCollection::count appelé, résultat: '.$count);
+            Log::debug('CsvCollection::count appelé, résultat: ' . $count);
         }
 
         // Affiche quelques infos sur les items si count > 0
@@ -90,9 +90,9 @@ class CsvCollection extends Collection
             foreach ($this->items as $item) {
                 if (config('csv-eloquent.debug', false) && app()->bound('log')) {
                     if (is_object($item)) {
-                        Log::debug("- Item #$i: ".get_class($item));
+                        Log::debug("- Item #$i: " . get_class($item));
                     } else {
-                        Log::debug("- Item #$i: ".gettype($item));
+                        Log::debug("- Item #$i: " . gettype($item));
                     }
                 }
                 $i++;
