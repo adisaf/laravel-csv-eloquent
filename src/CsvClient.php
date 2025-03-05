@@ -89,60 +89,111 @@ class CsvClient
         $file = str_replace('.csv', '', $file);
 
         // Débogage du nom de fichier
-        if (config('csv-eloquent.debug', false) && app()->bound('log')) {
+        if (config('csv-eloquent.debug', false)) {
             Log::debug("Nom de fichier original: {$originalFile}, Utilisé pour l'API: {$file}");
         }
 
-        // Transformation des paramètres de pagination pour correspondre aux attentes de l'API
+        // Transformation des paramètres pour l'API externe
         if (isset($params['pagination'])) {
-            if (config('csv-eloquent.debug', false) && app()->bound('log')) {
-                Log::debug('Paramètres de pagination avant transformation:', $params['pagination']);
-            }
+            // Garder une copie des paramètres d'origine pour débogage
+            $originalParams = $params['pagination'];
 
+            // Conversion 'limit' en 'pageSize'
             if (isset($params['pagination']['limit'])) {
                 $params['pagination']['pageSize'] = $params['pagination']['limit'];
                 unset($params['pagination']['limit']);
             }
 
+            // Conversion 'start' (offset) en numéro de page
             if (isset($params['pagination']['start'])) {
-                // Conversion start (offset) en numéro de page
                 if (isset($params['pagination']['pageSize']) && $params['pagination']['pageSize'] > 0) {
                     $params['pagination']['page'] = floor($params['pagination']['start'] / $params['pagination']['pageSize']) + 1;
                 } else {
-                    $params['pagination']['page'] = $params['pagination']['start'] + 1;
+                    $params['pagination']['page'] = 1;
                 }
                 unset($params['pagination']['start']);
+            }
+
+            // S'assurer que page est au moins 1
+            if (isset($params['pagination']['page']) && $params['pagination']['page'] < 1) {
+                $params['pagination']['page'] = 1;
             }
 
             // Assurer que withCount est toujours présent pour obtenir le total
             $params['pagination']['withCount'] = true;
 
-            if (config('csv-eloquent.debug', false) && app()->bound('log')) {
-                Log::debug('Paramètres de pagination après transformation:', $params['pagination']);
+            if (config('csv-eloquent.debug', false)) {
+                Log::debug('Paramètres de pagination transformés:', [
+                    'original' => $originalParams,
+                    'transformed' => $params['pagination'],
+                ]);
             }
         }
 
+        // Formatage des dates et des paramètres between
         Formatter::formatDateTime($params);
         Formatter::transformBetween($params);
+
+        // Génération de la clé de cache
         $cacheKey = 'csv_api_data_'.$file.'_'.md5(json_encode($params));
 
         if (app()->bound('cache')) {
             return Cache::remember($cacheKey, $this->cacheTtl, function () use ($file, $params) {
                 $response = $this->makeRequest('GET', '/api/'.$file, $params);
 
-                // Log la réponse en mode debug
-                if (config('csv-eloquent.debug', false) && app()->bound('log')) {
+                // Loguer la réponse de l'API pour le débogage
+                if (config('csv-eloquent.debug', false)) {
                     Log::debug("Réponse de l'API pour {$file}:", [
                         'meta' => $response['meta'] ?? 'Aucune métadonnée',
-                        'count_data' => isset($response['data']) ? count($response['data']) : 0,
+                        'total_records' => isset($response['meta']['pagination']['total']) ?
+                            $response['meta']['pagination']['total'] :
+                            (isset($response['meta']['pagination']['totalRecords']) ?
+                                $response['meta']['pagination']['totalRecords'] : 'Non disponible'),
                     ]);
                 }
+
+                // Normaliser la structure des métadonnées de pagination
+                $response = $this->normalizeResponse($response);
 
                 return $response;
             });
         }
 
-        return $this->makeRequest('GET', '/api/'.$file, $params);
+        $response = $this->makeRequest('GET', '/api/'.$file, $params);
+
+        return $this->normalizeResponse($response);
+    }
+
+    /**
+     * Normalise la structure de la réponse pour assurer la compatibilité.
+     *
+     * @return array
+     */
+    protected function normalizeResponse(array $response)
+    {
+        // Si nous avons des métadonnées de pagination, nous les normalisons
+        if (isset($response['meta']) && isset($response['meta']['pagination'])) {
+            // Assurer que totalRecords est présent, même si l'API utilise 'total'
+            if (! isset($response['meta']['pagination']['totalRecords']) && isset($response['meta']['pagination']['total'])) {
+                $response['meta']['pagination']['totalRecords'] = $response['meta']['pagination']['total'];
+            }
+
+            // Assurer que total est présent, même si l'API utilise 'totalRecords'
+            if (! isset($response['meta']['pagination']['total']) && isset($response['meta']['pagination']['totalRecords'])) {
+                $response['meta']['pagination']['total'] = $response['meta']['pagination']['totalRecords'];
+            }
+
+            // Forcer les valeurs à être des entiers
+            if (isset($response['meta']['pagination']['total'])) {
+                $response['meta']['pagination']['total'] = (int) $response['meta']['pagination']['total'];
+            }
+
+            if (isset($response['meta']['pagination']['totalRecords'])) {
+                $response['meta']['pagination']['totalRecords'] = (int) $response['meta']['pagination']['totalRecords'];
+            }
+        }
+
+        return $response;
     }
 
     /**
@@ -184,8 +235,11 @@ class CsvClient
     {
         try {
             // Assurer que l'endpoint est correctement formaté
-            if (config('csv-eloquent.debug', false) && app()->bound('log')) {
+            if (config('csv-eloquent.debug', false)) {
                 Log::debug("Endpoint API: {$endpoint}");
+                if (! empty($params)) {
+                    Log::debug('Paramètres de requête:', $params);
+                }
             }
 
             $url = rtrim($this->baseUrl, '/').$endpoint;
@@ -196,7 +250,7 @@ class CsvClient
                 ->$method($url, $params);
 
             // Débogage de la réponse
-            if (config('csv-eloquent.debug', false) && app()->bound('log')) {
+            if (config('csv-eloquent.debug', false)) {
                 Log::debug('Statut API: '.$response->status());
             }
 
@@ -239,7 +293,7 @@ class CsvClient
     /**
      * Vide le cache pour un fichier CSV spécifique.
      *
-     * @param string $file
+     * @param string|null $file
      *
      * @return void
      */
@@ -251,15 +305,25 @@ class CsvClient
 
         if ($file) {
             Cache::forget('csv_api_schema_'.$file);
-            // Pour les clés avec pattern, on ne peut pas utiliser Cache::forget directement
-            // Il faudrait implémenter une méthode plus complexe pour effacer par pattern
-            Cache::flush(); // Alternative plus drastique mais fonctionnelle
+            // Pour les clés avec pattern, nous utilisons une approche plus précise
+            $cachePattern = 'csv_api_data_'.$file.'_';
+
+            // Cette méthode de suppression dépend de l'implémentation du cache
+            // et peut ne pas fonctionner avec tous les drivers
+            if (method_exists(Cache::getStore(), 'getPrefix')) {
+                $prefix = Cache::getStore()->getPrefix();
+                Cache::getStore()->getRedis()->eval(
+                    "local keys = redis.call('keys', ARGV[1]) for i=1,#keys,5000 do redis.call('del', unpack(redis.call('mget', unpack(keys, i, math.min(i+4999, #keys))))) end return keys",
+                    0,
+                    $prefix.$cachePattern.'*'
+                );
+            } else {
+                // Si le driver ne supporte pas cette méthode, on vide tout le cache
+                Cache::flush();
+            }
         } else {
             // Vide tous les caches liés à l'API CSV
-            $keys = ['csv_api_files'];
-            foreach ($keys as $key) {
-                Cache::forget($key);
-            }
+            Cache::flush();
         }
     }
 }

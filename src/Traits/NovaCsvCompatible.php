@@ -10,8 +10,8 @@ trait NovaCsvCompatible
     /**
      * Construit une requête pour les index resource.
      *
-     * @param \Laravel\Nova\Http\Requests\NovaRequest $request
      * @param \Illuminate\Database\Eloquent\Builder $query
+     *
      * @return \Illuminate\Database\Eloquent\Builder
      */
     public static function indexQuery(NovaRequest $request, $query)
@@ -23,7 +23,6 @@ trait NovaCsvCompatible
      * Récupère les ressources pour une page particulière
      * Cette méthode remplace complètement celle de Nova
      *
-     * @param \Laravel\Nova\Http\Requests\NovaRequest $request
      * @return array
      */
     public static function buildIndexQuery(NovaRequest $request, $query = null)
@@ -61,24 +60,21 @@ trait NovaCsvCompatible
         // Exécuter la pagination
         $paginator = $query->paginate($perPage, ['*'], 'page', $page);
 
-        if (config('csv-eloquent.debug', false) && app()->bound('log')) {
-            \Adisaf\CsvEloquent\Helpers\PaginationDebugger::inspect($paginator, 'Nova::buildIndexQuery');
-        }
-
         // Important: Forcer le total comme un entier
         if (is_object($paginator) && property_exists($paginator, 'total')) {
-            $paginator->total = (int)$paginator->total;
+            $paginator->total = (int) $paginator->total;
         }
 
         // Nova analyse également le JSON résultant
         if (method_exists($paginator, 'toArray')) {
             $paginatorArray = $paginator->toArray();
             if (isset($paginatorArray['total'])) {
-                $paginatorArray['total'] = (int)$paginatorArray['total'];
+                $paginatorArray['total'] = (int) $paginatorArray['total'];
                 // Méthode hack pour réinjecter cette valeur
                 $paginator->setCollection(
                     $paginator->getCollection()->map(function ($item) use ($paginatorArray) {
                         $item->__paginationTotal = $paginatorArray['total'];
+
                         return $item;
                     })
                 );
@@ -87,7 +83,7 @@ trait NovaCsvCompatible
 
         return [
             'resources' => $paginator,
-            'total' => (int)($paginator->total ?? count($paginator->items())),
+            'total' => (int) ($paginator->total ?? count($paginator->items())),
         ];
     }
 }

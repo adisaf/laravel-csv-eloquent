@@ -230,6 +230,21 @@ abstract class ModelCSV extends \Illuminate\Database\Eloquent\Model
     }
 
     /**
+     * Détermine si le modèle a un attribut.
+     *
+     * @param string $key
+     *
+     * @return bool
+     */
+    public function hasAttribute($key)
+    {
+        return array_key_exists($key, $this->attributes) ||
+            $this->hasGetMutator($key) ||
+            $this->hasAttributeMutator($key) ||
+            $this->isAccessorAttribute($key);
+    }
+
+    /**
      * Obtient le nom de la connexion du modèle.
      *
      * @return string|null
@@ -884,7 +899,33 @@ abstract class ModelCSV extends \Illuminate\Database\Eloquent\Model
      */
     public function getTable()
     {
-        return $this->getCsvFile();
+        return $this->table ?? $this->getCsvFile();
+    }
+
+    /**
+     * Définit la table associée au modèle.
+     *
+     * @param string $table
+     *
+     * @return $this
+     */
+    public function setTable($table)
+    {
+        $this->table = $table;
+
+        return $this;
+    }
+
+    /**
+     * Qualifie le nom de la colonne donnée avec le nom de la table du modèle.
+     *
+     * @param string $column
+     *
+     * @return string
+     */
+    public function qualifyColumn($column)
+    {
+        return $this->getTable().'.'.$column;
     }
 
     /**
@@ -991,5 +1032,18 @@ abstract class ModelCSV extends \Illuminate\Database\Eloquent\Model
     public function getEagerLoads()
     {
         return $this->with;
+    }
+
+    /**
+     * Sauvegarde le modèle dans la base de données.
+     *
+     * Cette méthode est surchargée pour être compatible avec Eloquent,
+     * mais elle lance une exception car les opérations d'écriture ne sont pas supportées.
+     *
+     * @return bool
+     */
+    public function save(array $options = [])
+    {
+        throw new \BadMethodCallException('Les opérations d\'écriture ne sont pas supportées pour les modèles CSV');
     }
 }

@@ -11,6 +11,7 @@ class PaginationDebugger
      *
      * @param mixed $paginator Le paginateur à analyser
      * @param string $context Information contextuelle
+     *
      * @return void
      */
     public static function inspect($paginator, $context = 'default')
@@ -28,7 +29,7 @@ class PaginationDebugger
         foreach (get_object_vars($paginator) as $key => $value) {
             $info['properties'][$key] = [
                 'type' => gettype($value),
-                'value' => is_scalar($value) ? $value : (is_null($value) ? 'NULL' : '[' . gettype($value) . ']'),
+                'value' => is_scalar($value) ? $value : (is_null($value) ? 'NULL' : '['.gettype($value).']'),
             ];
         }
 
@@ -40,11 +41,11 @@ class PaginationDebugger
                     $result = $paginator->$method();
                     $info['methods'][$method] = [
                         'type' => gettype($result),
-                        'value' => is_scalar($result) ? $result : '[' . gettype($result) . ']',
+                        'value' => is_scalar($result) ? $result : '['.gettype($result).']',
                     ];
                 } catch (\Exception $e) {
                     $info['methods'][$method] = [
-                        'error' => $e->getMessage()
+                        'error' => $e->getMessage(),
                     ];
                 }
             }
@@ -55,7 +56,7 @@ class PaginationDebugger
             try {
                 $array = $paginator->toArray();
                 $info['toArray'] = array_map(function ($item) {
-                    return is_scalar($item) ? $item : '[' . gettype($item) . ']';
+                    return is_scalar($item) ? $item : '['.gettype($item).']';
                 }, $array);
             } catch (\Exception $e) {
                 $info['toArray'] = ['error' => $e->getMessage()];
@@ -67,7 +68,7 @@ class PaginationDebugger
                 $json = $paginator->jsonSerialize();
                 $info['jsonSerialize'] = is_array($json) ?
                     array_map(function ($item) {
-                        return is_scalar($item) ? $item : '[' . gettype($item) . ']';
+                        return is_scalar($item) ? $item : '['.gettype($item).']';
                     }, $json) :
                     ['not_array' => gettype($json)];
             } catch (\Exception $e) {
@@ -75,6 +76,7 @@ class PaginationDebugger
             }
         }
         Log::debug('PaginationDebugger::inspect', $info);
+
         return $paginator;
     }
 }
