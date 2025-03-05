@@ -66,8 +66,8 @@ trait NovaCsvCompatible
         }
 
         // Obtenir la taille de page
-        $perPage = (int) ($request->perPage ?: $model->getPerPage());
-        $page = (int) $request->input('page', 1);
+        $perPage = (int)($request->perPage ?: $model->getPerPage());
+        $page = (int)$request->input('page', 1);
 
         // Exécuter la pagination avec capture d'exception
         try {
@@ -85,50 +85,27 @@ trait NovaCsvCompatible
             }
 
             // IMPORTANT: Force explicitement le total comme un entier
-            $forcedTotal = (int) $paginator->total();
+            $forcedTotal = (int)$paginator->total();
 
-            // Manipuler l'objet paginator pour s'assurer que total est un entier
-            try {
-                $refClass = new \ReflectionClass($paginator);
-                $refProp = null;
-
-                // Chercher la propriété dans toute la hiérarchie des classes
-                do {
-                    try {
-                        $refProp = $refClass->getProperty('total');
-
-                        break;
-                    } catch (\ReflectionException $e) {
-                        $refClass = $refClass->getParentClass();
-                        if (! $refClass) {
-                            break;
-                        }
-                    }
-                } while ($refClass);
-
-                if ($refProp) {
-                    $refProp->setAccessible(true);
-                    $refProp->setValue($paginator, $forcedTotal);
-                }
-            } catch (\Exception $e) {
-                Log::error("Impossible de modifier la propriété 'total': ".$e->getMessage());
-            }
-
-            // Préparer le tableau de réponse
+            // Préparer le tableau de réponse avec les valeurs forcées en entier
             $response = [
                 'resources' => $paginator,
-                'total' => $forcedTotal,
+                'total' => $forcedTotal,  // <- Cette valeur est utilisée par Nova pour l'affichage
+                'count' => $forcedTotal,  // <- Certaines versions de Nova utilisent 'count'
             ];
 
             // Vérifier la structure avant de retourner
             if ($debug) {
-                $paginatorArray = $paginator->toArray();
-                Log::debug('Structure du paginateur', [
-                    'has_total' => isset($paginatorArray['total']),
-                    'total_type' => isset($paginatorArray['total']) ? gettype($paginatorArray['total']) : 'non défini',
-                    'total_value' => $paginatorArray['total'] ?? 'N/A',
-                    'response_structure' => array_keys($response),
-                ]);
+                if (method_exists($paginator, 'toArray')) {
+                    $paginatorArray = $paginator->toArray();
+                    Log::debug('Structure du paginateur', [
+                        'has_total' => isset($paginatorArray['total']),
+                        'total_type' => isset($paginatorArray['total']) ? gettype($paginatorArray['total']) : 'non défini',
+                        'total_value' => $paginatorArray['total'] ?? 'N/A',
+                        'response_structure' => array_keys($response),
+                        'response_total_type' => gettype($response['total']),
+                    ]);
+                }
             }
 
             return $response;
@@ -140,10 +117,10 @@ trait NovaCsvCompatible
             ]);
 
             // Créer une réponse de secours en cas d'erreur
-            // Cette structure est nécessaire pour Nova
             return [
                 'resources' => [],
                 'total' => 0,
+                'count' => 0,
             ];
         }
     }
@@ -157,24 +134,33 @@ trait NovaCsvCompatible
     public static function formatIndexResponse(NovaRequest $request, array $response)
     {
         // S'assurer que 'total' existe et est un entier au niveau racine
-        if (! isset($response['total']) || ! is_int($response['total'])) {
-            $total = isset($response['resources']['total']) ?
-                (int) $response['resources']['total'] :
-                ($response['resources']->total() !== null ?
-                    (int) $response['resources']->total() :
-                    count($response['resources']['data'] ?? []));
+        if (!isset($response['total']) || !is_int($response['total'])) {
+            $total = 0; // Valeur par défaut sécuritaire
+
+            if (isset($response['resources']) && method_exists($response['resources'], 'total')) {
+                $total = (int)$response['resources']->total();
+            } elseif (isset($response['resources']['total'])) {
+                $total = (int)$response['resources']['total'];
+            } elseif (isset($response['resources']['data'])) {
+                $total = count($response['resources']['data']);
+            }
 
             $response['total'] = $total;
         } else {
             // S'assurer que c'est bien un entier même si déjà défini
-            $response['total'] = (int) $response['total'];
+            $response['total'] = (int)$response['total'];
+        }
+
+        // Ajouter 'count' si absent (certaines versions de Nova l'utilisent)
+        if (!isset($response['count']) && isset($response['total'])) {
+            $response['count'] = $response['total'];
         }
 
         // S'assurer que les champs de pagination dans 'resources' sont des entiers
         if (isset($response['resources']) && is_array($response['resources'])) {
             foreach (['total', 'per_page', 'current_page', 'last_page', 'from', 'to'] as $field) {
                 if (isset($response['resources'][$field])) {
-                    $response['resources'][$field] = (int) $response['resources'][$field];
+                    $response['resources'][$field] = (int)$response['resources'][$field];
                 }
             }
         }

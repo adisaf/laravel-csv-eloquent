@@ -146,13 +146,11 @@ class Builder extends \Illuminate\Database\Eloquent\Builder
     protected function getQueryConnection()
     {
         // Créer une connexion fictive qui implémente ConnectionInterface
-        return new class implements \Illuminate\Database\ConnectionInterface
-        {
+        return new class implements \Illuminate\Database\ConnectionInterface {
             // Méthode nécessaire pour Grammar
             public function getQueryGrammar()
             {
-                return new class($this) extends Grammar
-                {
+                return new class($this) extends Grammar {
                     public function __construct($connection)
                     {
                         $this->connection = $connection;
@@ -944,15 +942,15 @@ class Builder extends \Illuminate\Database\Eloquent\Builder
         $params = [];
 
         // Gère les filtres
-        if (! empty($this->wheres)) {
+        if (!empty($this->wheres)) {
             $params['filters'] = $this->buildFilters($this->wheres);
         }
 
         // Gère l'ordre
-        if (! empty($this->orders)) {
+        if (!empty($this->orders)) {
             $sortParts = [];
             foreach ($this->orders as $order) {
-                $sortParts[] = $order['column'].':'.$order['direction'];
+                $sortParts[] = $order['column'] . ':' . $order['direction'];
             }
             $params['sort'] = implode(',', $sortParts);
         }
@@ -995,7 +993,7 @@ class Builder extends \Illuminate\Database\Eloquent\Builder
                     'value' => null,
                     'boolean' => 'and',
                 ];
-            } elseif (! $this->withTrashed) {
+            } elseif (!$this->withTrashed) {
                 $wheres[] = [
                     'column' => $this->model::DELETED_AT,
                     'operator' => 'is null',
@@ -1034,7 +1032,7 @@ class Builder extends \Illuminate\Database\Eloquent\Builder
                     if (strpos($boolean, 'not') !== false) {
                         $filters[$column]['$not'] = [$operator => $value];
                     } elseif ($boolean === 'or') {
-                        if (! isset($filters['$or'])) {
+                        if (!isset($filters['$or'])) {
                             $filters['$or'] = [];
                         }
                         $filters['$or'][] = [$column => [$operator => $value]];
@@ -1073,7 +1071,7 @@ class Builder extends \Illuminate\Database\Eloquent\Builder
     {
         $result = $this->first($columns);
 
-        if (! $result) {
+        if (!$result) {
             throw (new ModelNotFoundException)->setModel(
                 get_class($this->model)
             );
@@ -1123,9 +1121,9 @@ class Builder extends \Illuminate\Database\Eloquent\Builder
 
             // Debug
             if (config('csv-eloquent.debug', false) && app()->bound('log')) {
-                Log::debug("Builder::get - Nombre d'enregistrements récupérés: ".count($records));
+                Log::debug("Builder::get - Nombre d'enregistrements récupérés: " . count($records));
             }
-            if (! empty($records)) {
+            if (!empty($records)) {
                 if (config('csv-eloquent.debug', false) && app()->bound('log')) {
                     Log::debug("Builder::get - Premier enregistrement:\n");
                 }
@@ -1137,7 +1135,7 @@ class Builder extends \Illuminate\Database\Eloquent\Builder
             return $this->processRecords($records, $columns);
         } catch (\Exception $e) {
             if (config('csv-eloquent.debug', false) && app()->bound('log')) {
-                Log::debug('ERREUR dans Builder::get: '.$e->getMessage());
+                Log::debug('ERREUR dans Builder::get: ' . $e->getMessage());
             }
 
             return new Collection;
@@ -1155,7 +1153,7 @@ class Builder extends \Illuminate\Database\Eloquent\Builder
     protected function processRecords(array $records, array $columns = ['*'])
     {
         if (config('csv-eloquent.debug', false) && app()->bound('log')) {
-            Log::debug('processRecords - Début avec '.count($records)." enregistrements\n");
+            Log::debug('processRecords - Début avec ' . count($records) . " enregistrements\n");
         }
 
         $models = [];
@@ -1169,7 +1167,7 @@ class Builder extends \Illuminate\Database\Eloquent\Builder
 
             try {
                 // Vérifier que record est bien un tableau
-                if (! is_array($record)) {
+                if (!is_array($record)) {
                     if (config('csv-eloquent.debug', false) && app()->bound('log')) {
                         Log::debug("ATTENTION: L'enregistrement #$recordCount n'est pas un tableau\n");
                     }
@@ -1192,7 +1190,7 @@ class Builder extends \Illuminate\Database\Eloquent\Builder
 
                     if ($index === 0) {
                         if (config('csv-eloquent.debug', false) && app()->bound('log')) {
-                            Log::debug("Attribution: $field => $attribute = ".(is_string($value) ? $value : gettype($value)));
+                            Log::debug("Attribution: $field => $attribute = " . (is_string($value) ? $value : gettype($value)));
                         }
                     }
 
@@ -1201,7 +1199,7 @@ class Builder extends \Illuminate\Database\Eloquent\Builder
                         $model->fillAttribute($attribute, $value);
                     } catch (\Exception $e) {
                         if (config('csv-eloquent.debug', false) && app()->bound('log')) {
-                            Log::debug("ERREUR lors de l'attribution de {$attribute}: ".$e->getMessage());
+                            Log::debug("ERREUR lors de l'attribution de {$attribute}: " . $e->getMessage());
                         }
                     }
                 }
@@ -1209,27 +1207,27 @@ class Builder extends \Illuminate\Database\Eloquent\Builder
                 $models[] = $model;
             } catch (\Exception $e) {
                 if (config('csv-eloquent.debug', false) && app()->bound('log')) {
-                    Log::debug("EXCEPTION lors du traitement de l'enregistrement #{$recordCount}: ".$e->getMessage());
+                    Log::debug("EXCEPTION lors du traitement de l'enregistrement #{$recordCount}: " . $e->getMessage());
                 }
             }
         }
 
         if (config('csv-eloquent.debug', false) && app()->bound('log')) {
-            Log::debug('processRecords - Modèles créés: '.count($models));
+            Log::debug('processRecords - Modèles créés: ' . count($models));
         }
 
         // Vérifier le premier modèle
-        if (! empty($models)) {
+        if (!empty($models)) {
             if (config('csv-eloquent.debug', false) && app()->bound('log')) {
-                Log::debug('Premier modèle: '.get_class($models[0]));
+                Log::debug('Premier modèle: ' . get_class($models[0]));
             }
 
             $firstModel = $models[0];
             if (config('csv-eloquent.debug', false) && app()->bound('log')) {
-                Log::debug('ID du premier modèle: '.$firstModel->getKey());
+                Log::debug('ID du premier modèle: ' . $firstModel->getKey());
             }
             if (config('csv-eloquent.debug', false) && app()->bound('log')) {
-                Log::debug('Status du premier modèle: '.$firstModel->getAttribute('status'));
+                Log::debug('Status du premier modèle: ' . $firstModel->getAttribute('status'));
             }
         }
 
@@ -1237,11 +1235,11 @@ class Builder extends \Illuminate\Database\Eloquent\Builder
         $collection = $this->model->newCollection($models);
 
         if (config('csv-eloquent.debug', false) && app()->bound('log')) {
-            Log::debug('Collection créée avec '.$collection->count()." éléments\n");
+            Log::debug('Collection créée avec ' . $collection->count() . " éléments\n");
         }
 
         // Applique les clauses having si nécessaire
-        if (! empty($this->havings)) {
+        if (!empty($this->havings)) {
             $collection = $this->applyHavingClauses($collection);
         }
 
@@ -1312,32 +1310,36 @@ class Builder extends \Illuminate\Database\Eloquent\Builder
             $csvFile = $this->model->getCsvFile();
             $params = $this->buildApiParameters();
 
-            Log::info('Pagination: Exécution de la requête API', [
-                'model' => get_class($this->model),
-                'csvFile' => $csvFile,
-                'page' => $page,
-                'perPage' => $perPage,
-            ]);
+            if (config('csv-eloquent.debug', false)) {
+                Log::info('Pagination: Exécution de la requête API', [
+                    'model' => get_class($this->model),
+                    'csvFile' => $csvFile,
+                    'page' => $page,
+                    'perPage' => $perPage,
+                ]);
+            }
 
             $response = $this->csvClient->getData($csvFile, $params);
 
-            // Extraction du total
-            $total = null;
+            // Extraction du total - IMPORTANT: Forcer la conversion en entier
+            $total = 0; // Valeur par défaut sécuritaire
             if (isset($response['meta']['pagination']['total'])) {
-                $total = (int) $response['meta']['pagination']['total'];
+                $total = (int)$response['meta']['pagination']['total'];
             } elseif (isset($response['meta']['pagination']['totalRecords'])) {
-                $total = (int) $response['meta']['pagination']['totalRecords'];
+                $total = (int)$response['meta']['pagination']['totalRecords'];
             } else {
                 $total = count($results);
             }
 
-            Log::info('Pagination: Total extrait', [
-                'total' => $total,
-                'type' => gettype($total),
-            ]);
+            if (config('csv-eloquent.debug', false)) {
+                Log::info('Pagination: Total extrait', [
+                    'total' => $total,
+                    'type' => gettype($total),
+                ]);
+            }
 
-            // Créer une instance de notre paginateur personnalisé
-            return new \Adisaf\CsvEloquent\Paginator\FixedPaginator(
+            // Utiliser NovaCompatiblePaginator à la place de FixedPaginator
+            return new \Adisaf\CsvEloquent\NovaCompatiblePaginator(
                 $results,
                 $total,
                 $perPage,
@@ -1353,10 +1355,10 @@ class Builder extends \Illuminate\Database\Eloquent\Builder
                 'trace' => $e->getTraceAsString(),
             ]);
 
-            // Fallback avec un paginateur vide
-            return new \Adisaf\CsvEloquent\Paginator\FixedPaginator(
+            // Fallback avec un total sécuritaire de 0
+            return new \Adisaf\CsvEloquent\NovaCompatiblePaginator(
                 $results,
-                count($results),
+                0,
                 $perPage,
                 $page,
                 [
@@ -1510,7 +1512,7 @@ class Builder extends \Illuminate\Database\Eloquent\Builder
      */
     public function unless($value = null, ?callable $callback = null, ?callable $default = null)
     {
-        return $this->when(! $value, $callback, $default);
+        return $this->when(!$value, $callback, $default);
     }
 
     /**
@@ -1530,7 +1532,7 @@ class Builder extends \Illuminate\Database\Eloquent\Builder
      */
     public function doesntExist()
     {
-        return ! $this->exists();
+        return !$this->exists();
     }
 
     /**
@@ -2355,38 +2357,38 @@ class Builder extends \Illuminate\Database\Eloquent\Builder
         // Dans notre contexte CSV, nous n'avons pas de SQL
         // Mais nous pouvons renvoyer une représentation de la requête pour le débogage
 
-        $sql = 'SELECT '.implode(', ', $this->columns).' FROM '.($this->model ? $this->model->getTable() : 'unknown');
+        $sql = 'SELECT ' . implode(', ', $this->columns) . ' FROM ' . ($this->model ? $this->model->getTable() : 'unknown');
 
-        if (! empty($this->wheres)) {
+        if (!empty($this->wheres)) {
             $sql .= ' WHERE ';
             $whereConditions = [];
 
             foreach ($this->wheres as $where) {
                 if (isset($where['column']) && isset($where['operator'])) {
-                    $whereConditions[] = $where['column'].' '.$where['operator'].' '.
-                        (is_null($where['value']) ? 'NULL' : (is_array($where['value']) ? '['.implode(',', $where['value']).']' : $where['value']));
+                    $whereConditions[] = $where['column'] . ' ' . $where['operator'] . ' ' .
+                        (is_null($where['value']) ? 'NULL' : (is_array($where['value']) ? '[' . implode(',', $where['value']) . ']' : $where['value']));
                 }
             }
 
             $sql .= implode(' AND ', $whereConditions);
         }
 
-        if (! empty($this->orders)) {
+        if (!empty($this->orders)) {
             $sql .= ' ORDER BY ';
             $orderBy = [];
 
             foreach ($this->orders as $order) {
-                $orderBy[] = $order['column'].' '.strtoupper($order['direction']);
+                $orderBy[] = $order['column'] . ' ' . strtoupper($order['direction']);
             }
 
             $sql .= implode(', ', $orderBy);
         }
 
         if ($this->limit !== null) {
-            $sql .= ' LIMIT '.$this->limit;
+            $sql .= ' LIMIT ' . $this->limit;
 
             if ($this->offset !== null) {
-                $sql .= ' OFFSET '.$this->offset;
+                $sql .= ' OFFSET ' . $this->offset;
             }
         }
 
@@ -2492,7 +2494,7 @@ class Builder extends \Illuminate\Database\Eloquent\Builder
 
         // Calcul manuel si lastPage() n'existe pas
         if (isset($this->perPage) && $this->perPage > 0) {
-            return (int) ceil($this->total() / $this->perPage);
+            return (int)ceil($this->total() / $this->perPage);
         }
 
         return 0;
