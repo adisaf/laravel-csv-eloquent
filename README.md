@@ -27,11 +27,44 @@ Cette extension Laravel émule Eloquent ORM pour interagir avec des fichiers CSV
 
 ## Installation
 
+## Installation
+
 ### Via Composer
+
+Si votre module est sur **GitHub** et non sur Packagist, suivez ces étapes pour l'installer avec Composer.
+
+#### 1. Ajouter le dépôt GitHub (si nécessaire)
+
+Dans votre fichier `composer.json`, ajoutez le dépôt sous la clé `repositories` :
+
+```json
+{
+    "repositories": [
+        {
+            "type": "vcs",
+            "url": "https://github.com/adisaf/laravel-csv-eloquent.git"
+        }
+    ]
+}
+```
+
+#### 2. Installer le package
+
+Exécutez la commande suivante dans votre terminal :
 
 ```bash
 composer require adisaf/laravel-csv-eloquent
 ```
+
+#### 4. Vérifier l'installation
+
+Après installation, vérifiez que le package est bien disponible en exécutant :
+
+```bash
+composer show adisaf/laravel-csv-eloquent
+```
+
+Si tout est correct, vous pouvez maintenant utiliser `laravel-csv-eloquent` dans votre projet Laravel !
 
 ## Configuration
 
