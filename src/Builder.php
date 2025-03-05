@@ -1163,6 +1163,7 @@ class Builder extends \Illuminate\Database\Eloquent\Builder
                 if (config('csv-eloquent.debug', false) && app()->bound('log')) {
                     Log::debug("Création d'une nouvelle instance de modèle...\n");
                 }
+
                 $model = $this->model->newInstance();
                 $model->exists = true;  // Marquer comme existant
 
@@ -1178,7 +1179,7 @@ class Builder extends \Illuminate\Database\Eloquent\Builder
                     }
 
                     try {
-                        // Utiliser la méthode fill au lieu de manipuler attributes directement
+                        // Utiliser la méthode fillAttribute au lieu de manipuler attributes directement
                         $model->fillAttribute($attribute, $value);
                     } catch (\Exception $e) {
                         if (config('csv-eloquent.debug', false) && app()->bound('log')) {

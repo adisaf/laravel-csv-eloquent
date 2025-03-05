@@ -23,7 +23,11 @@ class CsvCollection extends Collection
         // Vérifier les items avant de les passer à parent
         if (! empty($items)) {
             if (config('csv-eloquent.debug', false) && app()->bound('log')) {
-                Log::debug('Premier item de type: '.get_class($items[0]));
+                if (is_object($items[0])) {
+                    Log::debug('Premier item de type: '.get_class($items[0]));
+                } else {
+                    Log::debug('Premier item de type: '.gettype($items[0]));
+                }
             }
         }
 
@@ -85,7 +89,11 @@ class CsvCollection extends Collection
             $i = 0;
             foreach ($this->items as $item) {
                 if (config('csv-eloquent.debug', false) && app()->bound('log')) {
-                    Log::debug("- Item #$i: ".get_class($item));
+                    if (is_object($item)) {
+                        Log::debug("- Item #$i: ".get_class($item));
+                    } else {
+                        Log::debug("- Item #$i: ".gettype($item));
+                    }
                 }
                 $i++;
                 if ($i >= 2) {

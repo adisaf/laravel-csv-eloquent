@@ -41,8 +41,10 @@ Dans votre fichier `composer.json`, ajoutez le dépôt sous la clé `repositorie
 {
     "repositories": [
         {
-            "type": "vcs",
-            "url": "https://github.com/adisaf/laravel-csv-eloquent.git"
+            "laravel-csv-eloquent": {
+                "type": "vcs",
+                "url": "https://github.com/adisaf/laravel-csv-eloquent.git"
+            }
         }
     ]
 }
