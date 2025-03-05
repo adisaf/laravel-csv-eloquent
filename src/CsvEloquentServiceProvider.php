@@ -2,16 +2,10 @@
 
 namespace Adisaf\CsvEloquent;
 
-use Illuminate\Contracts\Support\DeferrableProvider;
 use Illuminate\Support\ServiceProvider;
 
-class CsvEloquentServiceProvider extends ServiceProvider implements DeferrableProvider
+class CsvEloquentServiceProvider extends ServiceProvider
 {
-    /**
-     * Enregistre les services dans le conteneur.
-     *
-     * @return void
-     */
     public function register()
     {
         // Fusionne la configuration
@@ -25,11 +19,6 @@ class CsvEloquentServiceProvider extends ServiceProvider implements DeferrablePr
         });
     }
 
-    /**
-     * Bootstrap les services de l'application.
-     *
-     * @return void
-     */
     public function boot()
     {
         // Publie la configuration
@@ -38,13 +27,11 @@ class CsvEloquentServiceProvider extends ServiceProvider implements DeferrablePr
                 __DIR__.'/../config/csv-eloquent.php' => config_path('csv-eloquent.php'),
             ], 'csv-eloquent-config');
         }
+
+        // Log pour vérifier que le provider démarre
+        \Illuminate\Support\Facades\Log::info('CsvEloquentServiceProvider démarré');
     }
 
-    /**
-     * Get the services provided by the provider.
-     *
-     * @return array<int, string>
-     */
     public function provides()
     {
         return [CsvClient::class];

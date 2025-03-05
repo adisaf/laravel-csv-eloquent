@@ -175,30 +175,34 @@ class CsvClient
         if (isset($response['meta']) && isset($response['meta']['pagination'])) {
             $pagination = $response['meta']['pagination'];
 
-            // Assurer une structure complète avec tous les champs nécessaires
+            // Log pour vérifier ce que nous recevons
+            \Illuminate\Support\Facades\Log::info('Normalisation de la pagination', [
+                'structure_originale' => $pagination,
+            ]);
+
+            // Extraction et conversion des valeurs en entiers
+            $total = isset($pagination['total']) ? (int) $pagination['total'] : 0;
+            $page = isset($pagination['page']) ? (int) $pagination['page'] : 1;
+            $pageSize = isset($pagination['pageSize']) ? (int) $pagination['pageSize'] : 15;
+            $pageCount = isset($pagination['pageCount']) ? (int) $pagination['pageCount'] : 1;
+
+            // Création d'une structure complète compatible avec Laravel
             $normalizedPagination = [
-                'current_page' => isset($pagination['page']) ? (int) $pagination['page'] : 1,
-                'per_page' => isset($pagination['pageSize']) ? (int) $pagination['pageSize'] : 15,
-                'last_page' => isset($pagination['pageCount']) ? (int) $pagination['pageCount'] : 1,
-                'total' => isset($pagination['total']) ? (int) $pagination['total'] : 0,
-                'totalRecords' => isset($pagination['total']) ? (int) $pagination['total'] : 0,
+                'current_page' => $page,
+                'per_page' => $pageSize,
+                'last_page' => $pageCount,
+                'total' => $total,
+                'totalRecords' => $total,
+                'from' => (($page - 1) * $pageSize) + 1,
+                'to' => min($page * $pageSize, $total),
             ];
 
-            // Calculer from/to pour la compatibilité complète avec Laravel
-            $normalizedPagination['from'] = ($normalizedPagination['current_page'] - 1) * $normalizedPagination['per_page'] + 1;
-            $normalizedPagination['to'] = min(
-                $normalizedPagination['from'] + $normalizedPagination['per_page'] - 1,
-                $normalizedPagination['total']
-            );
-
-            // Remplacer la structure originale par notre structure normalisée
+            // Remplacement de la structure originale
             $response['meta']['pagination'] = $normalizedPagination;
 
-            // Pour une compatibilité maximale, dupliquer certaines valeurs au niveau racine
-            // Nova les recherche parfois ici
-            if (! isset($response['total'])) {
-                $response['total'] = $normalizedPagination['total'];
-            }
+            \Illuminate\Support\Facades\Log::info('Pagination normalisée', [
+                'nouvelle_structure' => $normalizedPagination,
+            ]);
         }
 
         return $response;

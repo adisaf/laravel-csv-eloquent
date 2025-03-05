@@ -1305,43 +1305,38 @@ class Builder extends \Illuminate\Database\Eloquent\Builder
     public function paginate($perPage = 15, $columns = ['*'], $pageName = 'page', $page = null, $total = null)
     {
         $page = $page ?: \Illuminate\Pagination\Paginator::resolveCurrentPage($pageName);
-
         $this->forPage($page, $perPage);
-
         $results = $this->get($columns);
 
         try {
             $csvFile = $this->model->getCsvFile();
             $params = $this->buildApiParameters();
 
+            Log::info('Pagination: Exécution de la requête API', [
+                'model' => get_class($this->model),
+                'csvFile' => $csvFile,
+                'page' => $page,
+                'perPage' => $perPage,
+            ]);
+
             $response = $this->csvClient->getData($csvFile, $params);
 
-            // Log complet pour déboguer
-            if (config('csv-eloquent.debug', false)) {
-                \Illuminate\Support\Facades\Log::debug("Données de pagination brutes pour $csvFile", [
-                    'response_meta' => $response['meta'] ?? [],
-                    'page' => $page,
-                    'perPage' => $perPage,
-                ]);
-            }
-
-            // Extraire total avec vérification de type et logging
+            // Extraction du total
             $total = null;
             if (isset($response['meta']['pagination']['total'])) {
                 $total = (int) $response['meta']['pagination']['total'];
             } elseif (isset($response['meta']['pagination']['totalRecords'])) {
                 $total = (int) $response['meta']['pagination']['totalRecords'];
-            } elseif (isset($response['meta']['total'])) {
-                $total = (int) $response['meta']['total'];
             } else {
                 $total = count($results);
             }
 
-            if (config('csv-eloquent.debug', false)) {
-                \Illuminate\Support\Facades\Log::debug("Total obtenu pour pagination: $total (type: ".gettype($total).')');
-            }
+            Log::info('Pagination: Total extrait', [
+                'total' => $total,
+                'type' => gettype($total),
+            ]);
 
-            // Créer le paginateur avec le total explicitement castré
+            // Créer une instance de notre paginateur personnalisé
             return new \Adisaf\CsvEloquent\Paginator\FixedPaginator(
                 $results,
                 $total,
@@ -1353,13 +1348,12 @@ class Builder extends \Illuminate\Database\Eloquent\Builder
                 ]
             );
         } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error('Erreur de pagination', [
-                'exception' => $e->getMessage(),
-                'file' => $this->model->getCsvFile(),
+            Log::error('Exception lors de la pagination', [
+                'message' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
             ]);
 
-            // Même en cas d'erreur, utiliser notre paginateur corrigé
+            // Fallback avec un paginateur vide
             return new \Adisaf\CsvEloquent\Paginator\FixedPaginator(
                 $results,
                 count($results),
