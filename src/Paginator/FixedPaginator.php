@@ -23,7 +23,7 @@ class FixedPaginator extends LengthAwarePaginator
         foreach ($numericFields as $field) {
             if (isset($array[$field])) {
                 // Si c'est un objet ou non numérique, remplacer par une valeur appropriée
-                if (is_object($array[$field]) || !is_numeric($array[$field])) {
+                if (is_object($array[$field]) || ! is_numeric($array[$field])) {
                     if ($field === 'total') {
                         $array[$field] = isset($array['data']) ? count($array['data']) : 0;
                     } elseif ($field === 'per_page') {
@@ -36,14 +36,14 @@ class FixedPaginator extends LengthAwarePaginator
                 }
 
                 // Forcer la conversion en entier
-                $array[$field] = (int)$array[$field];
+                $array[$field] = (int) $array[$field];
             }
         }
 
         // Log pour débogage
         Log::debug('FixedPaginator::toArray', [
             'total_type' => isset($array['total']) ? gettype($array['total']) : 'non défini',
-            'total_value' => $array['total'] ?? 'N/A'
+            'total_value' => $array['total'] ?? 'N/A',
         ]);
 
         return $array;
@@ -60,22 +60,20 @@ class FixedPaginator extends LengthAwarePaginator
         $total = parent::total();
 
         // Si le total est un objet ou non numérique, utiliser une valeur par défaut
-        if (is_object($total) || !is_numeric($total)) {
+        if (is_object($total) || ! is_numeric($total)) {
             Log::debug('FixedPaginator::total - Total est un objet ou non numérique', [
-                'total_type' => gettype($total)
+                'total_type' => gettype($total),
             ]);
 
             return count($this->items());
         }
 
         // Forcer la conversion en entier
-        return (int)$total;
+        return (int) $total;
     }
 
     /**
      * Convertit l'objet en données JSON sérialisables.
-     *
-     * @return array
      */
     public function jsonSerialize(): array
     {
@@ -83,7 +81,7 @@ class FixedPaginator extends LengthAwarePaginator
 
         // Double vérification du type de total
         if (isset($data['total'])) {
-            $data['total'] = (int)$data['total'];
+            $data['total'] = (int) $data['total'];
         }
 
         return $data;

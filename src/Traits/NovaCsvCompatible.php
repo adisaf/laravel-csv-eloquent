@@ -11,8 +11,8 @@ trait NovaCsvCompatible
     /**
      * Construit une requête pour les index resource.
      *
-     * @param \Laravel\Nova\Http\Requests\NovaRequest $request
      * @param \Illuminate\Database\Eloquent\Builder $query
+     *
      * @return \Illuminate\Database\Eloquent\Builder
      */
     public static function indexQuery(NovaRequest $request, $query)
@@ -24,8 +24,8 @@ trait NovaCsvCompatible
      * Récupère les ressources pour une page particulière
      * Cette méthode remplace complètement celle de Nova
      *
-     * @param \Laravel\Nova\Http\Requests\NovaRequest $request
      * @param \Illuminate\Database\Eloquent\Builder|null $query
+     *
      * @return array
      */
     public static function buildIndexQuery(NovaRequest $request, $query = null)
@@ -40,7 +40,7 @@ trait NovaCsvCompatible
         if ($debug) {
             Log::debug('NovaCsvCompatible::buildIndexQuery - Début', [
                 'model' => get_class($model),
-                'request_params' => $request->only(['page', 'perPage', 'orderBy', 'orderByDirection', 'trashed'])
+                'request_params' => $request->only(['page', 'perPage', 'orderBy', 'orderByDirection', 'trashed']),
             ]);
         }
 
@@ -66,8 +66,8 @@ trait NovaCsvCompatible
         }
 
         // Obtenir la taille de page
-        $perPage = (int)($request->perPage ?: $model->getPerPage());
-        $page = (int)$request->input('page', 1);
+        $perPage = (int) ($request->perPage ?: $model->getPerPage());
+        $page = (int) $request->input('page', 1);
 
         // Exécuter la pagination avec capture d'exception
         try {
@@ -80,12 +80,12 @@ trait NovaCsvCompatible
                     'total_value' => $paginator->total(),
                     'count' => $paginator->count(),
                     'per_page' => $paginator->perPage(),
-                    'current_page' => $paginator->currentPage()
+                    'current_page' => $paginator->currentPage(),
                 ]);
             }
 
             // IMPORTANT: Force explicitement le total comme un entier
-            $forcedTotal = (int)$paginator->total();
+            $forcedTotal = (int) $paginator->total();
 
             // Manipuler l'objet paginator pour s'assurer que total est un entier
             $reflection = new \ReflectionClass($paginator);
@@ -108,7 +108,7 @@ trait NovaCsvCompatible
                     'has_total' => isset($paginatorArray['total']),
                     'total_type' => isset($paginatorArray['total']) ? gettype($paginatorArray['total']) : 'non défini',
                     'total_value' => $paginatorArray['total'] ?? 'N/A',
-                    'response_structure' => array_keys($response)
+                    'response_structure' => array_keys($response),
                 ]);
             }
 
@@ -117,14 +117,14 @@ trait NovaCsvCompatible
         } catch (\Exception $e) {
             Log::error('Erreur lors de la pagination dans NovaCsvCompatible', [
                 'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
 
             // Créer une réponse de secours en cas d'erreur
             // Cette structure est nécessaire pour Nova
             return [
                 'resources' => [],
-                'total' => 0
+                'total' => 0,
             ];
         }
     }
@@ -133,26 +133,24 @@ trait NovaCsvCompatible
      * Formate une ressource pour éviter les problèmes de sérialisation.
      * Cette méthode est appelée par Nova lors de la préparation de la réponse JSON.
      *
-     * @param \Laravel\Nova\Http\Requests\NovaRequest $request
-     * @param array $response
      * @return array
      */
     public static function formatIndexResponse(NovaRequest $request, array $response)
     {
         // S'assurer que 'total' existe et est un entier au niveau racine
-        if (!isset($response['total']) || !is_numeric($response['total'])) {
+        if (! isset($response['total']) || ! is_numeric($response['total'])) {
             $response['total'] = isset($response['resources']['total']) ?
-                (int)$response['resources']['total'] :
+                (int) $response['resources']['total'] :
                 count($response['resources']['data'] ?? []);
         } else {
-            $response['total'] = (int)$response['total'];
+            $response['total'] = (int) $response['total'];
         }
 
         // S'assurer que les champs de pagination dans 'resources' sont des entiers
         if (isset($response['resources']) && is_array($response['resources'])) {
             foreach (['total', 'per_page', 'current_page', 'last_page', 'from', 'to'] as $field) {
                 if (isset($response['resources'][$field])) {
-                    $response['resources'][$field] = (int)$response['resources'][$field];
+                    $response['resources'][$field] = (int) $response['resources'][$field];
                 }
             }
         }
