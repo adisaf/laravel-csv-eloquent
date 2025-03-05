@@ -3,14 +3,15 @@
 namespace Adisaf\CsvEloquent\Traits;
 
 use Laravel\Nova\Http\Requests\NovaRequest;
+use Laravel\Nova\TrashedStatus;
 
 trait NovaCsvCompatible
 {
     /**
      * Construit une requête pour les index resource.
      *
+     * @param \Laravel\Nova\Http\Requests\NovaRequest $request
      * @param \Illuminate\Database\Eloquent\Builder $query
-     *
      * @return \Illuminate\Database\Eloquent\Builder
      */
     public static function indexQuery(NovaRequest $request, $query)
@@ -19,56 +20,74 @@ trait NovaCsvCompatible
     }
 
     /**
-     * Construit une requête "count" pour les index resource.
+     * Récupère les ressources pour une page particulière
+     * Cette méthode remplace complètement celle de Nova
      *
-     * Cette méthode est cruciale pour afficher correctement le total dans Nova.
-     *
-     * @param \Illuminate\Database\Eloquent\Builder $query
-     *
-     * @return \Illuminate\Database\Eloquent\Builder
-     */
-    public static function indexCountQuery(NovaRequest $request, $query)
-    {
-        // Pour les modèles CSV, nous ne modifions pas la requête
-        // car le total est déjà géré par la méthode paginate() du Builder CSV
-        return $query;
-    }
-
-    /**
-     * Construit une requête pour les relations de type "related resource".
-     *
-     * @param \Illuminate\Database\Eloquent\Builder $query
-     *
-     * @return \Illuminate\Database\Eloquent\Builder
-     */
-    public static function relatableQuery(NovaRequest $request, $query)
-    {
-        return $query;
-    }
-
-    /**
-     * Récupère les ressources pour une page particulière.
-     *
+     * @param \Laravel\Nova\Http\Requests\NovaRequest $request
      * @return array
      */
     public static function buildIndexQuery(NovaRequest $request, $query = null)
     {
-        $query = $query ?: static::newModel()->newQuery();
+        $model = static::newModel();
+
+        // Créer la requête de base
+        $query = $query ?: $model->newQuery();
+
+        // Appliquer toute logique additionnelle définie dans la ressource
+        static::indexQuery($request, $query);
 
         // Force l'ordre par ID par défaut si aucun autre tri n'est spécifié
         if (empty($request->get('orderBy'))) {
-            $query->orderBy(static::newModel()->getKeyName(), 'desc');
+            $query->orderBy($model->getKeyName(), 'desc');
+        } else {
+            $query->orderBy(
+                $request->get('orderBy'),
+                $request->get('orderByDirection', 'asc')
+            );
         }
 
-        // Obtenez la taille par page à partir de la requête ou utilisez la valeur par défaut
-        $perPage = $request->perPage ?: static::newModel()->getPerPage();
+        // Gérer les soft deletes si nécessaire
+        $trashedStatus = $request->input('trashed');
+        if ($trashedStatus === TrashedStatus::WITH) {
+            $query->withTrashed();
+        } elseif ($trashedStatus === TrashedStatus::ONLY) {
+            $query->onlyTrashed();
+        }
 
-        // Utilisez la page passée dans la requête
-        $page = $request->get('page', 1);
+        // Obtenir la taille de page
+        $perPage = $request->perPage ?: $model->getPerPage();
+        $page = $request->input('page', 1);
 
-        // Utilisez le paginateur existant de notre Builder CSV
+        // Exécuter la pagination
+        $paginator = $query->paginate($perPage, ['*'], 'page', $page);
+
+        if (config('csv-eloquent.debug', false) && app()->bound('log')) {
+            \Adisaf\CsvEloquent\Helpers\PaginationDebugger::inspect($paginator, 'Nova::buildIndexQuery');
+        }
+
+        // Important: Forcer le total comme un entier
+        if (is_object($paginator) && property_exists($paginator, 'total')) {
+            $paginator->total = (int)$paginator->total;
+        }
+
+        // Nova analyse également le JSON résultant
+        if (method_exists($paginator, 'toArray')) {
+            $paginatorArray = $paginator->toArray();
+            if (isset($paginatorArray['total'])) {
+                $paginatorArray['total'] = (int)$paginatorArray['total'];
+                // Méthode hack pour réinjecter cette valeur
+                $paginator->setCollection(
+                    $paginator->getCollection()->map(function ($item) use ($paginatorArray) {
+                        $item->__paginationTotal = $paginatorArray['total'];
+                        return $item;
+                    })
+                );
+            }
+        }
+
         return [
-            'resources' => $query->paginate($perPage, ['*'], 'page', $page),
+            'resources' => $paginator,
+            'total' => (int)($paginator->total ?? count($paginator->items())),
         ];
     }
 }
