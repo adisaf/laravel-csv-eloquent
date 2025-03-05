@@ -75,6 +75,7 @@ class CsvClient
      * Obtient les données d'un fichier CSV.
      *
      * @param string $file
+     * @param array $params
      *
      * @return array
      *
@@ -93,26 +94,56 @@ class CsvClient
             Log::debug("Nom de fichier original: {$originalFile}, Utilisé pour l'API: {$file}");
         }
 
-        if (isset($params['pagination']['limit'])) {
-            $params['pagination']['pageSize'] = $params['pagination']['limit'];
-            unset($params['pagination']['limit']);
+        // Transformation des paramètres de pagination pour correspondre aux attentes de l'API
+        if (isset($params['pagination'])) {
+            if (config('csv-eloquent.debug', false) && app()->bound('log')) {
+                Log::debug("Paramètres de pagination avant transformation:", $params['pagination']);
+            }
+
+            if (isset($params['pagination']['limit'])) {
+                $params['pagination']['pageSize'] = $params['pagination']['limit'];
+                unset($params['pagination']['limit']);
+            }
+
+            if (isset($params['pagination']['start'])) {
+                // Conversion start (offset) en numéro de page
+                if (isset($params['pagination']['pageSize']) && $params['pagination']['pageSize'] > 0) {
+                    $params['pagination']['page'] = floor($params['pagination']['start'] / $params['pagination']['pageSize']) + 1;
+                } else {
+                    $params['pagination']['page'] = $params['pagination']['start'] + 1;
+                }
+                unset($params['pagination']['start']);
+            }
+
+            // Assurer que withCount est toujours présent pour obtenir le total
+            $params['pagination']['withCount'] = true;
+
+            if (config('csv-eloquent.debug', false) && app()->bound('log')) {
+                Log::debug("Paramètres de pagination après transformation:", $params['pagination']);
+            }
         }
 
-        if (isset($params['pagination']['start'])) {
-            $params['pagination']['page'] = $params['pagination']['start'] + 1;
-            unset($params['pagination']['start']);
-        }
         Formatter::formatDateTime($params);
         Formatter::transformBetween($params);
-        $cacheKey = 'csv_api_data_'.$file.'_'.md5(json_encode($params));
+        $cacheKey = 'csv_api_data_' . $file . '_' . md5(json_encode($params));
 
         if (app()->bound('cache')) {
             return Cache::remember($cacheKey, $this->cacheTtl, function () use ($file, $params) {
-                return $this->makeRequest('GET', '/api/'.$file, $params);
+                $response = $this->makeRequest('GET', '/api/' . $file, $params);
+
+                // Log la réponse en mode debug
+                if (config('csv-eloquent.debug', false) && app()->bound('log')) {
+                    Log::debug("Réponse de l'API pour {$file}:", [
+                        'meta' => $response['meta'] ?? 'Aucune métadonnée',
+                        'count_data' => isset($response['data']) ? count($response['data']) : 0
+                    ]);
+                }
+
+                return $response;
             });
         }
 
-        return $this->makeRequest('GET', '/api/'.$file, $params);
+        return $this->makeRequest('GET', '/api/' . $file, $params);
     }
 
     /**
@@ -129,15 +160,15 @@ class CsvClient
         // Enlever l'extension .csv du nom de fichier s'il est présent
         $file = str_replace('.csv', '', $file);
 
-        $cacheKey = 'csv_api_schema_'.$file;
+        $cacheKey = 'csv_api_schema_' . $file;
 
         if (app()->bound('cache')) {
             return Cache::remember($cacheKey, $this->cacheTtl * 10, function () use ($file) {
-                return $this->makeRequest('GET', '/api/'.$file.'/schema');
+                return $this->makeRequest('GET', '/api/' . $file . '/schema');
             });
         }
 
-        return $this->makeRequest('GET', '/api/'.$file.'/schema');
+        return $this->makeRequest('GET', '/api/' . $file . '/schema');
     }
 
     /**
@@ -158,7 +189,7 @@ class CsvClient
                 Log::debug("Endpoint API: {$endpoint}");
             }
 
-            $url = rtrim($this->baseUrl, '/').$endpoint;
+            $url = rtrim($this->baseUrl, '/') . $endpoint;
 
             $response = Http::withBasicAuth($this->username, $this->password)
                 ->timeout(30)
@@ -167,7 +198,7 @@ class CsvClient
 
             // Débogage de la réponse
             if (config('csv-eloquent.debug', false) && app()->bound('log')) {
-                Log::debug('Statut API: '.$response->status());
+                Log::debug('Statut API: ' . $response->status());
             }
 
             if ($response->failed()) {
@@ -180,14 +211,14 @@ class CsvClient
                 }
 
                 throw new CsvApiException(
-                    'Échec de la requête API CSV: '.$response->status(),
+                    'Échec de la requête API CSV: ' . $response->status(),
                     $response->status()
                 );
             }
 
             return $response->json();
         } catch (\Exception $e) {
-            if (! $e instanceof CsvApiException) {
+            if (!$e instanceof CsvApiException) {
                 if (app()->bound('log')) {
                     Log::error('Exception lors de la requête API CSV', [
                         'exception' => $e->getMessage(),
@@ -196,7 +227,7 @@ class CsvClient
                 }
 
                 throw new CsvApiException(
-                    'Exception lors de la requête API CSV: '.$e->getMessage(),
+                    'Exception lors de la requête API CSV: ' . $e->getMessage(),
                     0,
                     $e
                 );
@@ -215,12 +246,12 @@ class CsvClient
      */
     public function clearCache($file = null)
     {
-        if (! app()->bound('cache')) {
+        if (!app()->bound('cache')) {
             return;
         }
 
         if ($file) {
-            Cache::forget('csv_api_schema_'.$file);
+            Cache::forget('csv_api_schema_' . $file);
             // Pour les clés avec pattern, on ne peut pas utiliser Cache::forget directement
             // Il faudrait implémenter une méthode plus complexe pour effacer par pattern
             Cache::flush(); // Alternative plus drastique mais fonctionnelle
