@@ -9,8 +9,8 @@ trait NovaCsvCompatible
     /**
      * Construit une requête pour les index resource.
      *
-     * @param \Laravel\Nova\Http\Requests\NovaRequest $request
      * @param \Illuminate\Database\Eloquent\Builder $query
+     *
      * @return \Illuminate\Database\Eloquent\Builder
      */
     public static function indexQuery(NovaRequest $request, $query)
@@ -23,8 +23,8 @@ trait NovaCsvCompatible
      *
      * Cette méthode est cruciale pour afficher correctement le total dans Nova.
      *
-     * @param \Laravel\Nova\Http\Requests\NovaRequest $request
      * @param \Illuminate\Database\Eloquent\Builder $query
+     *
      * @return \Illuminate\Database\Eloquent\Builder
      */
     public static function indexCountQuery(NovaRequest $request, $query)
@@ -37,8 +37,8 @@ trait NovaCsvCompatible
     /**
      * Construit une requête pour les relations de type "related resource".
      *
-     * @param \Laravel\Nova\Http\Requests\NovaRequest $request
      * @param \Illuminate\Database\Eloquent\Builder $query
+     *
      * @return \Illuminate\Database\Eloquent\Builder
      */
     public static function relatableQuery(NovaRequest $request, $query)
@@ -49,7 +49,6 @@ trait NovaCsvCompatible
     /**
      * Récupère les ressources pour une page particulière.
      *
-     * @param \Laravel\Nova\Http\Requests\NovaRequest $request
      * @return array
      */
     public static function buildIndexQuery(NovaRequest $request, $query = null)
