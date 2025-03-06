@@ -8,6 +8,13 @@ use Illuminate\Support\Facades\Log;
 class CsvCollection extends Collection
 {
     /**
+     * Les métadonnées associées à la collection, contenant notamment les informations de pagination.
+     *
+     * @var array|null
+     */
+    protected $meta = null;
+
+    /**
      * Crée une nouvelle collection.
      *
      * @param mixed $items
@@ -40,13 +47,43 @@ class CsvCollection extends Collection
     }
 
     /**
+     * Définit les métadonnées de la collection.
+     *
+     * @param array $meta
+     * @return $this
+     */
+    public function setMeta(array $meta)
+    {
+        $this->meta = $meta;
+        if (config('csv-eloquent.debug', false) && app()->bound('log')) {
+            Log::debug('CsvCollection::setMeta - Métadonnées définies', [
+                'meta' => $meta,
+                'pagination' => $meta['pagination'] ?? 'non disponible'
+            ]);
+        }
+        return $this;
+    }
+
+    /**
+     * Récupère les métadonnées de la collection.
+     *
+     * @return array|null
+     */
+    public function getMeta()
+    {
+        return $this->meta;
+    }
+
+    /**
      * Détermine si la collection est vide ou non.
      *
      * @return bool
      */
     public function isEmpty()
     {
+        // Vérifie d'abord si nous avons des éléments dans la collection
         $result = parent::isEmpty();
+
         if (config('csv-eloquent.debug', false) && app()->bound('log')) {
             Log::debug('CsvCollection::isEmpty appelé, résultat: ' . ($result ? 'true' : 'false') . ', count(): ' . $this->count());
         }
@@ -76,13 +113,24 @@ class CsvCollection extends Collection
      */
     public function count(): int
     {
-        $count = parent::count();
-        if (config('csv-eloquent.debug', false) && app()->bound('log')) {
-            Log::debug('CsvCollection::count appelé, résultat: ' . $count);
+        // Vérifier si des métadonnées de pagination sont disponibles
+        if (isset($this->meta) && isset($this->meta['pagination']) && isset($this->meta['pagination']['total'])) {
+            $count = (int)$this->meta['pagination']['total'];
+
+            if (config('csv-eloquent.debug', false) && app()->bound('log')) {
+                Log::debug('CsvCollection::count appelé, utilisant meta.pagination.total: ' . $count);
+            }
+        } else {
+            // Fallback au comportement d'origine si aucune métadonnée n'est disponible
+            $count = parent::count();
+
+            if (config('csv-eloquent.debug', false) && app()->bound('log')) {
+                Log::debug('CsvCollection::count appelé, résultat depuis items: ' . $count);
+            }
         }
 
         // Affiche quelques infos sur les items si count > 0
-        if ($count > 0) {
+        if ($count > 0 && !empty($this->items)) {
             if (config('csv-eloquent.debug', false) && app()->bound('log')) {
                 Log::debug("Items dans la collection: \n");
             }
@@ -103,5 +151,17 @@ class CsvCollection extends Collection
         }
 
         return $count;
+    }
+
+    /**
+     * Total des éléments dans la source de données
+     */
+    public function total(): int
+    {
+        if (isset($this->meta) && isset($this->meta['pagination']) && isset($this->meta['pagination']['total'])) {
+            return (int)$this->meta['pagination']['total'];
+        }
+
+        return parent::count();
     }
 }

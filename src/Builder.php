@@ -1132,7 +1132,14 @@ class Builder extends \Illuminate\Database\Eloquent\Builder
                 }
             }
 
-            return $this->processRecords($records, $columns);
+            $collection = $this->processRecords($records, $columns);
+
+            // Ajouter les métadonnées à la collection
+            if (isset($response['meta'])) {
+                $collection->setMeta($response['meta']);
+            }
+
+            return $collection;
         } catch (\Exception $e) {
             if (config('csv-eloquent.debug', false) && app()->bound('log')) {
                 Log::debug('ERREUR dans Builder::get: ' . $e->getMessage());
@@ -1233,6 +1240,11 @@ class Builder extends \Illuminate\Database\Eloquent\Builder
 
         // Crée une collection de modèles
         $collection = $this->model->newCollection($models);
+
+        // Ajouter les métadonnées à la collection si disponibles
+        if (isset($response['meta'])) {
+            $collection->setMeta($response['meta']);
+        }
 
         if (config('csv-eloquent.debug', false) && app()->bound('log')) {
             Log::debug('Collection créée avec ' . $collection->count() . " éléments\n");
